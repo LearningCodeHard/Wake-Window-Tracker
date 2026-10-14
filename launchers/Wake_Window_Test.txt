@@ -1,6 +1,6 @@
 // Variables used by Scriptable.
 // icon-color: orange; icon-glyph: moon;
-// Wake Window launcher 1.0.1
+// Wake Window launcher 1.0.2
 const CONFIG={"repository": "LearningCodeHard/Wake-Window-Tracker", "basePath": "", "downloadMode": "public", "channel": "test"};
 /* Embedded into both installed launchers. No remote dependencies. */
 function sha256(bytes) {
@@ -70,7 +70,7 @@ function createUpdater(config,env) {
     return decode(result.content.replace(/\s/g,''));
   }
   async function setToken(){
-    const a=alert();a.title='GitHub read-only access';a.message='Paste a fine-grained token with Contents: Read-only for '+config.repository+'. It stays in Scriptable Keychain. Configure this on each phone.';a.addSecureTextField('GitHub token','');a.addAction('Save token');a.addCancelAction('Cancel');
+    const a=alert();a.title='GitHub read-only access';a.message='Paste a fine-grained token with Contents: Read-only for '+config.repository+'. It stays in Scriptable Keychain. Configure this on each phone.';a.addSecureTextField('GitHub token','');a.addAction('Save Token');a.addCancelAction('Cancel');
     if(await a.presentAlert()!==0)return false;
     const token=a.textFieldValue(0).trim();if(!token)throw Error('Enter a token.');keychain.set(tokenKey,token);return true;
   }
@@ -94,10 +94,10 @@ function createUpdater(config,env) {
     }catch(e){status='Cached version · '+e.message;if(!valid(state.active)&&!valid(state.previous))throw e;}
   }
   async function menu(){
-    const a=alert();a.title='Wake Window updates';a.message=channel.toUpperCase()+' · '+(state.active?state.active.version:'Not installed')+'\n'+status+'\nChanges take effect on the next launch.';
-    const actions=[{id:'revert',label:'Revert update'},{id:'pause',label:state.paused?'Resume automatic updates':'Pause automatic updates'}];
-    if(!publicDownloads)actions.push({id:'token',label:'Change GitHub token'});
-    if(channel==='test')actions.push({id:'testMode',label:state.testMode==='demo'?'Use separate test folder':'Use demo data'});
+    const a=alert();a.title='Graham’s Day Planner · Updates';a.message=channel.toUpperCase()+' · '+(state.active?state.active.version:'Not installed')+'\n'+status+'\nChanges take effect on the next launch.';
+    const actions=[{id:'revert',label:'Revert Update'},{id:'pause',label:state.paused?'Resume Automatic Updates':'Pause Automatic Updates'}];
+    if(!publicDownloads)actions.push({id:'token',label:'Change GitHub Token'});
+    if(channel==='test')actions.push({id:'testMode',label:state.testMode==='demo'?'Use Separate Test Folder':'Use Demo Data'});
     for(const x of actions)a.addAction(x.label);a.addCancelAction('Close');const pick=await a.presentSheet(),choice=actions[pick];
     if(!choice)return 'Update settings closed.';
     if(choice.id==='revert'){
@@ -135,5 +135,5 @@ const updater=createUpdater(CONFIG,{
   decode:s=>{const data=Data.fromBase64String(s);if(!data)throw Error('Invalid download encoding.');return data.toRawString();},
   bytes:s=>Data.fromString(s).getBytes(),loadModule:path=>importModule(path),alert:()=>new Alert(),uuid:()=>UUID.string()
 });
-try{await updater.run(args.shortcutParameter);}catch(e){const a=new Alert();a.title='Wake Window · '+CONFIG.channel;a.message=e.message+'\n\nLauncher 1.0.1 · '+CONFIG.channel+'\nRepository: '+CONFIG.repository;a.addAction('OK');await a.presentAlert();}
+try{await updater.run(args.shortcutParameter);}catch(e){const a=new Alert();a.title='Wake Window · '+CONFIG.channel;a.message=e.message+'\n\nLauncher 1.0.2 · '+CONFIG.channel+'\nRepository: '+CONFIG.repository;a.addAction('OK');await a.presentAlert();}
 Script.complete();

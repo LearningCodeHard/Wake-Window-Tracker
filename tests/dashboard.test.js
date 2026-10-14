@@ -14,10 +14,10 @@ function screen(){
 }
 test('demo UI presents the exact noon schedule and bedtime once',()=>{const s=screen();const t=s.nodes.get('timeline').innerHTML;assert.match(t,/2:00 PM/);assert.match(t,/5:00 PM/);assert.equal((t.match(/8:00 PM/g)||[]).length,1);assert.match(s.nodes.get('guidanceText').textContent,/boundary/);});
 test('test identity stays explicit in demo and folder modes without a demo banner',()=>{
- const s=screen();s.run("S.release={channel:'test',version:'2.0.3'};render()");assert.equal(s.nodes.get('appTitle').textContent,'Wake Window TEST');assert.match(s.nodes.get('saveState').textContent,/TEST.*Demo only.*clock 12:00 PM.*no shared writes/);assert.doesNotMatch(html,/id="demoBanner"/);
+ const s=screen();s.run("S.release={channel:'test',version:'2.0.4'};render()");assert.equal(s.nodes.get('appTitle').textContent,'Graham’s Day Planner');assert.match(s.nodes.get('saveState').textContent,/TEST.*Demo only.*clock 12:00 PM.*no shared writes/);assert.doesNotMatch(html,/id="demoBanner"/);
  s.run("S.now+=90*60000;render()");assert.match(s.nodes.get('saveState').textContent,/clock 1:30 PM/);
- s.run("S.mode='live';render()");assert.equal(s.nodes.get('appTitle').textContent,'Wake Window TEST');assert.match(s.nodes.get('saveState').textContent,/TEST.*Test folder/);
- s.run("S.release.channel='production';render()");assert.equal(s.nodes.get('appTitle').textContent,'Wake Window');assert.doesNotMatch(s.nodes.get('saveState').textContent,/TEST|Demo only|Test folder/);
+ s.run("S.mode='live';render()");assert.equal(s.nodes.get('appTitle').textContent,'Graham’s Day Planner');assert.match(s.nodes.get('saveState').textContent,/TEST.*Test folder/);
+ s.run("S.release.channel='production';render()");assert.equal(s.nodes.get('appTitle').textContent,'Graham’s Day Planner');assert.doesNotMatch(s.nodes.get('saveState').textContent,/TEST|Demo only|Test folder/);
 });
 test('appointment form sends selected day and captured planning revision',async()=>{
  const s=screen();s.run("S.revisions.planning='plan-r1';awakeSheet()");s.nodes.get('awakeStart').value='14:00';s.nodes.get('awakeEnd').value='14:30';const promise=s.run('saveAwake()'),q=s.context.__queue.shift();assert.equal(q.action,'awakePeriod');assert.equal(q.data.base,'plan-r1');assert.equal(q.data.date,'2026-10-05');assert.equal(q.data.start,'14:00');s.context.receive({id:q.id,message:'Saved'});await promise;
@@ -71,13 +71,13 @@ test('missing OCR end requires confirmation before active import can be saved',a
  const s=screen();s.run("activeNapSheet(null,{start:WW.wall(S.date,'11:15',S.settings.timezone),end:null,expectedEnd:WW.wall(S.date,'12:30',S.settings.timezone),messages:[],needsActiveConfirmation:true})");await s.run('saveActiveNap()');assert.equal(s.context.__queue.length,0);assert.match(s.nodes.get('modalError').textContent,/Confirm/);s.nodes.get('confirmActive').checked=true;const promise=s.run('saveActiveNap()'),q=s.context.__queue.shift();assert.equal(q.action,'activeNap');s.context.receive({id:q.id,message:'Saved'});await promise;
 });
 test('expected wake passing leaves asleep status and asks for estimate update',()=>{
- const s=screen();asleep(s);s.run("S.now=Date.parse(WW.wall(S.date,'13:45',S.settings.timezone));render()");assert.match(s.nodes.get('currentState').textContent,/Sleeping/);assert.equal(s.nodes.get('guidanceTitle').textContent,'Update expected wake');assert.match(s.nodes.get('timeline').innerHTML,/Planning paused/);
+ const s=screen();asleep(s);s.run("S.now=Date.parse(WW.wall(S.date,'13:45',S.settings.timezone));render()");assert.match(s.nodes.get('currentState').textContent,/Sleeping/);assert.equal(s.nodes.get('guidanceTitle').textContent,'Update Expected Wake');assert.match(s.nodes.get('timeline').innerHTML,/Planning paused/);
 });
 test('repeated active import without timer goal preserves a custom expected wake',()=>{
  const s=screen();asleep(s);s.run("activeNapSheet(null,{start:WW.wall(S.date,'12:05',S.settings.timezone),end:null,expectedEnd:WW.wall(S.date,'13:20',S.settings.timezone),estimateSource:'preferred',messages:[]})");assert.equal(s.nodes.get('napExpected').value,'13:30');
 });
 test('deleting a completed nap asks inside the dashboard and cancel leaves it recorded',()=>{
- const s=screen();s.run('napSheet(0);deleteNap()');assert.equal(s.nodes.get('modalTitle').textContent,'Delete nap?');assert.equal(s.context.__queue.length,0);assert.match(s.nodes.get('modalBody').innerHTML,/Keep entry/);s.run('closeSheet()');assert.equal(s.run('S.day.naps.length'),1);assert.equal(s.context.pendingDeletion,null);
+ const s=screen();s.run('napSheet(0);deleteNap()');assert.equal(s.nodes.get('modalTitle').textContent,'Delete nap?');assert.equal(s.context.__queue.length,0);assert.match(s.nodes.get('modalBody').innerHTML,/Keep Entry/);s.run('closeSheet()');assert.equal(s.run('S.day.naps.length'),1);assert.equal(s.context.pendingDeletion,null);
 });
 test('confirming deletion sends the saved revision and refreshes the timeline after native save',async()=>{
  const s=screen();s.run('napSheet(0);deleteNap()');const promise=s.run('confirmDeletion()'),q=s.context.__queue.shift();assert.equal(q.action,'deleteNap');assert.equal(q.data.entity,'nap:2026-10-05:sample');assert.equal(q.data.base,'demo');assert.equal(q.data.date,'2026-10-05');const snapshot=s.run('JSON.parse(JSON.stringify(S))');snapshot.day.naps=[];s.context.receive({id:q.id,message:'Nap deleted',snapshot});await promise;assert.doesNotMatch(s.nodes.get('timeline').innerHTML,/Recorded nap/);assert.equal(s.nodes.get('napTotal').textContent,'0 completed · 0m');assert.equal(s.nodes.get('modal').classList.contains('open'),false);
@@ -89,7 +89,7 @@ test('stale deletion remains visible and does not pretend the nap was removed',a
  const s=screen();s.run('napSheet(0);deleteNap()');const promise=s.run('confirmDeletion()'),q=s.context.__queue.shift();s.context.receive({id:q.id,error:'This entry changed on another phone. Refresh and try again.'});await promise;assert.match(s.nodes.get('modalError').textContent,/another phone/);assert.equal(s.nodes.get('modal').classList.contains('open'),true);assert.equal(s.run('S.day.naps.length'),1);
 });
 test('unsaved nap has no delete button or deletion request',()=>{
- const s=screen();s.run('napSheet()');assert.doesNotMatch(s.nodes.get('modalBody').innerHTML,/Delete this nap/);s.run('deleteNap()');assert.equal(s.context.__queue.length,0);assert.match(s.nodes.get('toast').textContent,/not been saved/);
+ const s=screen();s.run('napSheet()');assert.doesNotMatch(s.nodes.get('modalBody').innerHTML,/Delete This Nap/);s.run('deleteNap()');assert.equal(s.context.__queue.length,0);assert.match(s.nodes.get('toast').textContent,/not been saved/);
 });
 test('morning wake removal also works without host browser dialogs',async()=>{
  const s=screen();s.run("S.day.morning=WW.wall(S.date,'07:00',S.settings.timezone);S.revisions.morning='morning-r1';morningSheet();removeMorning()");assert.equal(s.context.__queue.length,0);const promise=s.run('confirmDeletion()'),q=s.context.__queue.shift();assert.equal(q.action,'morning');assert.equal(q.data.time,null);assert.equal(q.data.base,'morning-r1');s.context.receive({id:q.id,message:'Removed'});await promise;
@@ -117,4 +117,20 @@ test('OCR review preserves an inferred earlier date rather than silently moving 
 });
 test('a form opened before midnight preserves its nap date while a newly opened form uses the new day',()=>{
  const s=screen();s.run("S.now=Date.parse(WW.wall(S.date,'23:58',S.settings.timezone));napSheet()");assert.equal(s.context.napEntryDate,'2026-10-05');s.run('S.now+=5*60000');assert.equal(s.context.napEntryDate,'2026-10-05');s.run('napSheet()');assert.equal(s.context.napEntryDate,'2026-10-06');
+});
+
+test('footer navigation is direct and status is last after every page control',()=>{
+ const footer=html.match(/<footer>([\s\S]*?)<\/footer>/)[1];
+ assert.match(footer,/onclick="morningSheet\(\)">Morning Wake/);assert.match(footer,/onclick="bedtimeSheet\(\)">Change Bedtime/);assert.match(footer,/onclick="updatesSheet\(\)">Updates/);assert.match(footer,/onclick="refresh\(\)">Refresh/);
+ assert.ok(footer.lastIndexOf('</button>')<footer.indexOf('id="saveState"'));assert.ok(footer.indexOf('id="operationState"')>footer.indexOf('id="saveState"'));assert.doesNotMatch(footer,/Plan Details|Day Adjustments/);
+ const s=screen();assert.equal(s.nodes.get('timelineTitle').textContent,'Rest of Today');s.run('addSheet()');assert.doesNotMatch(s.nodes.get('modalBody').innerHTML,/morningSheet|Morning Wake/);assert.match(s.nodes.get('modalBody').innerHTML,/awakeSheet/);assert.match(s.nodes.get('modalBody').innerHTML,/napAction/);
+});
+test('Updates contains sharing checks and conditionally exposes installed launcher controls',async()=>{
+ const s=screen();s.run('updatesSheet()');assert.match(s.nodes.get('modalBody').innerHTML,/probeSheet\(\)">Two-Phone Check/);assert.doesNotMatch(s.nodes.get('modalBody').innerHTML,/openUpdateControls/);
+ s.run("S.release={channel:'test',version:'2.0.4',updates:true};updatesSheet()");assert.match(s.nodes.get('modalBody').innerHTML,/openUpdateControls\(\)">Update Controls/);
+ const promise=s.run('openUpdateControls()'),q=s.context.__queue.shift();assert.equal(q.action,'updates');s.context.receive({id:q.id,message:'Update preferences saved'});await promise;assert.equal(s.context.__queue.length,0);assert.equal(s.nodes.get('modal').classList.contains('open'),true);
+});
+test('Settings keeps Day Adjustments reachable and reset appears only for saved constraints',()=>{
+ const s=screen();s.run('settingsSheet()');assert.match(s.nodes.get('modalBody').innerHTML,/planningSheet\(\)">Day Adjustments/);s.run('planningSheet()');assert.match(s.nodes.get('modalBody').innerHTML,/Add Awake Period/);assert.doesNotMatch(s.nodes.get('modalBody').innerHTML,/Return to Automatic/);
+ s.run("S.day.planning={awake:[{id:'a',start:WW.wall(S.date,'14:00',S.settings.timezone),end:WW.wall(S.date,'14:30',S.settings.timezone)}],pins:[]};planningSheet()");assert.match(s.nodes.get('modalBody').innerHTML,/resetPlanningSheet\(\)">Return to Automatic/);
 });

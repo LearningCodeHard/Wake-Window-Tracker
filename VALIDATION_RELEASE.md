@@ -98,3 +98,25 @@ and demo-clock advancement. All 194 checks pass (188 Node and 6 Python).
 
 The exact native toolbar clearance still needs the reporting phone's check.
 The TEST manifest is 2.0.3 at sequence 3. Production remains 1.1.3.
+
+## TEST 2.0.4 — Graham’s Day Planner and direct navigation
+
+The user chose Graham’s Day Planner and approved the navigation/layout changes.
+The common header no longer includes TEST; the footer retains explicit channel
+and demo/test-folder identity. All footer controls precede version/read/save
+status, which is the final page content. Morning Wake and Change Bedtime replace
+the former menu buttons. Add contains appointment and nap choices. Updates now
+contains Two-Phone Check plus installed-launcher Update Controls. Settings keeps
+Day Adjustments reachable, including conditional reset and conflicting revision
+selection. Buttons/subbuttons use Title Case. Rest of Today is capitalized.
+
+Native update-menu labels are bundled in launcher 1.0.2; already installed
+launchers need one manual replacement for these labels. App navigation updates
+automatically and stays compatible with launcher 1.0.1. No data schema, folder
+boundary, scheduling, native time input, or Refresh behavior changed.
+
+All 197 checks pass (191 Node and 6 Python); artifact checksums verify. New DOM
+regressions exercise footer order, direct/add routing, Settings access, reset
+visibility, channel identity, and update-menu bridge behavior. These checks do
+not verify iOS rendering; phone acceptance remains pending. TEST is 2.0.4 at
+sequence 4; PRODUCTION remains accepted 2.0.3 at sequence 3.
