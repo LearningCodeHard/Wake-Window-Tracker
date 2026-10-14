@@ -1,0 +1,11 @@
+{
+  "schema": 1,
+  "channel": "test",
+  "sequence": 1,
+  "version": "2.0.1",
+  "sha256": "48e25b021f5a77a74627b450c8138e63c9e8c63f9e58dc89bd1adc20041bb412",
+  "path": "releases/48e25b021f5a77a74627b450c8138e63c9e8c63f9e58dc89bd1adc20041bb412.js",
+  "bytes": 110253,
+  "minLauncher": 1,
+  "dataSchema": 1
+}

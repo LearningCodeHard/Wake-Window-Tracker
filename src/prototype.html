@@ -1,0 +1,209 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<title>Wake Window</title>
+<style>
+:root{
+  --bg:#08111f;--surface:#101b2d;--surface2:#17253a;--surface3:#1d2d45;
+  --text:#f5f7fb;--muted:#8291aa;--accent:#73c7ff;--accent2:#9c8cff;
+  --good:#72d6ad;--warn:#ffca6b;--danger:#ff8d8d;--line:rgba(255,255,255,.08);
+}
+[data-theme="light"]{
+  --bg:#eaf4fb;--surface:#fff;--surface2:#eef4f8;--surface3:#e4edf4;
+  --text:#102035;--muted:#6e8097;--accent:#2c8fd1;--accent2:#7668d6;
+  --good:#2c9a72;--warn:#b97811;--danger:#ca5656;--line:rgba(16,32,53,.08);
+}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+html,body{width:100%;min-height:100%;font-family:-apple-system,BlinkMacSystemFont,"SF Pro Rounded","SF Pro Text",sans-serif;background:var(--bg);color:var(--text)}
+body{padding:max(env(safe-area-inset-top),16px) 18px max(env(safe-area-inset-bottom),26px);transition:.3s background}
+button,input{font:inherit} button{cursor:pointer}
+#app{max-width:540px;margin:0 auto;padding-bottom:92px}
+.header{display:flex;justify-content:space-between;align-items:center;margin-bottom:18px}
+.eyebrow{font-size:12px;text-transform:uppercase;letter-spacing:.11em;color:var(--muted);font-weight:700}
+.date{font-size:14px;color:var(--muted);margin-top:3px}
+.icon-btn{width:40px;height:40px;border-radius:50%;border:1px solid var(--line);background:rgba(255,255,255,.06);color:var(--text);display:grid;place-items:center}
+.hero{position:relative;overflow:hidden;border-radius:28px;padding:24px;background:radial-gradient(circle at 80% 20%,rgba(115,199,255,.23),transparent 38%),linear-gradient(145deg,var(--surface2),var(--surface));border:1px solid var(--line);box-shadow:0 20px 50px rgba(0,0,0,.18)}
+.status-row{display:flex;justify-content:space-between;align-items:center;gap:12px}
+.pill{display:inline-flex;align-items:center;gap:7px;padding:7px 11px;border-radius:999px;background:rgba(114,214,173,.12);color:var(--good);font-size:12px;font-weight:700}
+.dot{width:7px;height:7px;border-radius:50%;background:currentColor;box-shadow:0 0 12px currentColor}
+.hero-label{font-size:13px;color:var(--muted);margin-top:24px}
+.hero-time{font-size:clamp(46px,13vw,70px);font-weight:800;letter-spacing:-.055em;line-height:1;margin-top:5px}
+.hero-sub{color:var(--muted);font-size:14px;margin-top:8px}
+.progress{height:9px;border-radius:999px;background:rgba(255,255,255,.07);margin-top:22px;overflow:hidden}
+.progress>div{height:100%;border-radius:inherit;background:linear-gradient(90deg,var(--accent),var(--accent2));width:38%;transition:width .4s}
+.progress-labels{display:flex;justify-content:space-between;color:var(--muted);font-size:11px;margin-top:7px}
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:12px}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:22px;padding:17px}
+.card-label{font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);font-weight:700}
+.card-main{font-size:24px;font-weight:750;letter-spacing:-.025em;margin-top:7px}
+.card-sub{font-size:12px;color:var(--muted);margin-top:5px;line-height:1.35}
+.section{margin-top:22px}
+.section-head{display:flex;justify-content:space-between;align-items:end;margin-bottom:10px}
+.section-title{font-size:16px;font-weight:750}
+.section-note{font-size:11px;color:var(--muted)}
+.timeline{background:var(--surface);border:1px solid var(--line);border-radius:24px;padding:8px 16px}
+.event{display:grid;grid-template-columns:28px 1fr auto;gap:10px;align-items:center;padding:13px 0;border-bottom:1px solid var(--line)}
+.event:last-child{border-bottom:0}
+.event-icon{width:28px;height:28px;border-radius:10px;display:grid;place-items:center;background:var(--surface2);font-size:14px}
+.event-title{font-size:14px;font-weight:700}
+.event-sub{font-size:11px;color:var(--muted);margin-top:2px}
+.event-time{text-align:right;font-size:13px;font-weight:650}.event-time.muted{color:var(--muted);font-weight:500}
+.guidance{background:linear-gradient(145deg,rgba(115,199,255,.10),rgba(156,140,255,.09));border:1px solid rgba(115,199,255,.18);border-radius:24px;padding:18px}
+.guidance-top{display:flex;align-items:center;gap:10px}.guidance-icon{width:34px;height:34px;border-radius:12px;background:rgba(115,199,255,.12);display:grid;place-items:center}
+.guidance h3{font-size:15px}.guidance p{font-size:13px;color:var(--muted);line-height:1.45;margin-top:8px}
+.actions{position:fixed;left:18px;right:18px;bottom:max(env(safe-area-inset-bottom),18px);display:flex;gap:10px;max-width:540px;margin:0 auto;z-index:50}
+.action{flex:1;border:1px solid rgba(255,255,255,.12);background:rgba(16,27,45,.88);backdrop-filter:blur(18px);-webkit-backdrop-filter:blur(18px);color:var(--text);padding:14px 12px;border-radius:18px;font-weight:750}
+.action.primary{background:linear-gradient(135deg,var(--accent),#559de5);color:#071321;border:0}
+.backdrop{position:fixed;inset:0;background:rgba(0,0,0,.52);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);opacity:0;pointer-events:none;transition:.25s;z-index:90}.backdrop.open{opacity:1;pointer-events:auto}
+.sheet{position:fixed;left:0;right:0;bottom:0;z-index:100;background:var(--surface);border-radius:28px 28px 0 0;padding:12px 22px max(env(safe-area-inset-bottom),28px);transform:translateY(102%);transition:transform .32s cubic-bezier(.32,.72,0,1);border-top:1px solid var(--line)}.sheet.open{transform:translateY(0)}
+.handle{width:36px;height:4px;background:rgba(128,128,128,.3);border-radius:3px;margin:0 auto 18px}
+.sheet h2{text-align:center;font-size:17px;margin-bottom:18px}
+.form-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}.field label{display:block;font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.07em;margin:0 0 6px 4px}.field input{width:100%;border:1px solid var(--line);background:var(--surface2);color:var(--text);padding:13px 12px;border-radius:14px;outline:none}.full{grid-column:1/-1}
+.sheet-actions{display:flex;gap:10px;margin-top:16px}.sheet-actions button{flex:1;border:0;border-radius:15px;padding:13px;font-weight:750;background:var(--surface2);color:var(--text)}.sheet-actions .save{background:var(--accent);color:#071321}
+.setting-row{display:flex;justify-content:space-between;align-items:center;padding:13px 0;border-bottom:1px solid var(--line)}
+.setting-title{font-size:14px;font-weight:650}.setting-sub{font-size:11px;color:var(--muted);margin-top:2px;max-width:220px}
+.theme-toggle{display:flex;background:var(--surface2);border-radius:14px;padding:3px}.theme-toggle button{border:0;background:transparent;color:var(--muted);padding:7px 10px;border-radius:11px}.theme-toggle button.active{background:var(--surface3);color:var(--text)}
+.demo{margin-top:10px;text-align:center;color:var(--muted);font-size:10px}
+</style>
+</head>
+<body>
+<div id="app">
+  <div class="header">
+    <div><div class="eyebrow">Wake Window</div><div class="date" id="dateText"></div></div>
+    <button class="icon-btn" onclick="openSheet('settings')" aria-label="Settings">⚙︎</button>
+  </div>
+
+  <section class="hero">
+    <div class="status-row">
+      <span class="pill"><span class="dot"></span><span>Awake</span></span>
+      <span class="eyebrow" id="windowName">Wake Window 2</span>
+    </div>
+    <div class="hero-label">Awake for</div>
+    <div class="hero-time" id="heroTime">0h 00m</div>
+    <div class="hero-sub" id="heroSub">Since 8:55 AM</div>
+    <div class="progress"><div id="progressBar"></div></div>
+    <div class="progress-labels"><span id="minLabel"></span><span id="maxLabel"></span></div>
+  </section>
+
+  <div class="grid">
+    <section class="card">
+      <div class="card-label">Next nap</div>
+      <div class="card-main" id="nextNap"></div>
+      <div class="card-sub">Target window from the actual wake time</div>
+    </section>
+    <section class="card">
+      <div class="card-label">Bedtime</div>
+      <div class="card-main" id="bedtime"></div>
+      <div class="card-sub" id="bedtimeSub"></div>
+    </section>
+  </div>
+
+  <section class="section">
+    <div class="section-head"><div class="section-title">Today</div><div class="section-note" id="napTotal"></div></div>
+    <div class="timeline" id="timeline"></div>
+  </section>
+
+  <section class="section guidance">
+    <div class="guidance-top"><div class="guidance-icon">✦</div><h3>Bedtime guidance</h3></div>
+    <p id="guidanceText"></p>
+  </section>
+  <div class="demo">Prototype uses local device storage. Shared sync will replace this layer.</div>
+</div>
+
+<div class="actions">
+  <button class="action" onclick="logMorningWake()">Morning wake</button>
+  <button class="action primary" onclick="openSheet('nap')">＋ Log nap</button>
+</div>
+
+<div class="backdrop" id="backdrop" onclick="closeSheets()"></div>
+
+<div class="sheet" id="nap-sheet">
+  <div class="handle"></div><h2>Log nap</h2>
+  <div class="form-grid">
+    <div class="field"><label>Start</label><input type="time" id="napStart"></div>
+    <div class="field"><label>End</label><input type="time" id="napEnd"></div>
+  </div>
+  <div class="sheet-actions"><button onclick="closeSheets()">Cancel</button><button class="save" onclick="saveNap()">Save nap</button></div>
+</div>
+
+<div class="sheet" id="settings-sheet">
+  <div class="handle"></div><h2>Settings</h2>
+  <div class="setting-row">
+    <div><div class="setting-title">Appearance</div><div class="setting-sub">Because spreadsheets have committed enough crimes.</div></div>
+    <div class="theme-toggle"><button id="darkBtn" onclick="setTheme('dark')">Dark</button><button id="lightBtn" onclick="setTheme('light')">Light</button></div>
+  </div>
+  <div class="form-grid" style="margin-top:16px">
+    <div class="field"><label>Bedtime start</label><input type="time" id="bedStart"></div>
+    <div class="field"><label>Bedtime end</label><input type="time" id="bedEnd"></div>
+    <div class="field"><label>WW1 min</label><input type="number" id="ww1Min"></div>
+    <div class="field"><label>WW1 max</label><input type="number" id="ww1Max"></div>
+    <div class="field"><label>WW2 min</label><input type="number" id="ww2Min"></div>
+    <div class="field"><label>WW2 max</label><input type="number" id="ww2Max"></div>
+    <div class="field"><label>WW3 min</label><input type="number" id="ww3Min"></div>
+    <div class="field"><label>WW3 max</label><input type="number" id="ww3Max"></div>
+    <div class="field"><label>Final min</label><input type="number" id="ww4Min"></div>
+    <div class="field"><label>Final max</label><input type="number" id="ww4Max"></div>
+    <div class="field full"><label>Planned nap length (minutes)</label><input type="number" id="napTarget"></div>
+  </div>
+  <div class="sheet-actions"><button onclick="closeSheets()">Cancel</button><button class="save" onclick="saveSettings()">Save</button></div>
+</div>
+
+<script>
+const defaults={theme:'dark',settings:{bedtimeStart:'19:30',bedtimeEnd:'20:30',napTarget:90,wakeWindows:[{min:60,max:90},{min:120,max:135},{min:135,max:150},{min:150,max:180}]},day:{morningWake:'06:15',naps:[{start:'07:27',end:'08:55'}]}};
+let state=loadState();
+function clone(x){return JSON.parse(JSON.stringify(x))}
+function loadState(){try{return JSON.parse(localStorage.getItem('wake_window_demo')||'null')||clone(defaults)}catch(e){return clone(defaults)}}
+function saveState(){localStorage.setItem('wake_window_demo',JSON.stringify(state))}
+function todayAt(hhmm){const [h,m]=hhmm.split(':').map(Number),d=new Date();d.setHours(h,m,0,0);return d}
+function addMin(d,m){return new Date(d.getTime()+m*60000)}
+function mins(a,b){return Math.round((b-a)/60000)}
+function durationText(total){total=Math.max(0,total);const h=Math.floor(total/60),m=total%60;return h?`${h}h ${String(m).padStart(2,'0')}m`:`${m}m`}
+function fmt(d){return d.toLocaleTimeString([],{hour:'numeric',minute:'2-digit'})}
+function fmtRange(a,b){return `${fmt(a)}–${fmt(b)}`}
+function currentWakeStart(){if(state.day.naps.length)return todayAt(state.day.naps[state.day.naps.length-1].end);return todayAt(state.day.morningWake)}
+function addEvent(icon,title,sub,time,muted=false){const row=document.createElement('div');row.className='event';row.innerHTML=`<div class="event-icon">${icon}</div><div><div class="event-title">${title}</div><div class="event-sub">${sub}</div></div><div class="event-time ${muted?'muted':''}">${time}</div>`;document.getElementById('timeline').appendChild(row)}
+function render(){
+  document.documentElement.setAttribute('data-theme',state.theme);
+  document.getElementById('darkBtn').classList.toggle('active',state.theme==='dark');
+  document.getElementById('lightBtn').classList.toggle('active',state.theme==='light');
+  const now=new Date();
+  document.getElementById('dateText').textContent=now.toLocaleDateString([],{weekday:'long',month:'long',day:'numeric'});
+  const wakeIndex=Math.min(state.day.naps.length,state.settings.wakeWindows.length-1),ww=state.settings.wakeWindows[wakeIndex],ws=currentWakeStart(),elapsed=Math.max(0,mins(ws,now)),nextMin=addMin(ws,ww.min),nextMax=addMin(ws,ww.max),pct=Math.max(0,Math.min(100,(elapsed/ww.max)*100));
+  document.getElementById('windowName').textContent=wakeIndex===state.settings.wakeWindows.length-1?'Final Wake Window':`Wake Window ${wakeIndex+1}`;
+  document.getElementById('heroTime').textContent=durationText(elapsed);
+  document.getElementById('heroSub').textContent=`Since ${fmt(ws)}`;
+  document.getElementById('progressBar').style.width=pct+'%';
+  document.getElementById('minLabel').textContent=`${durationText(ww.min)} minimum`;
+  document.getElementById('maxLabel').textContent=`${durationText(ww.max)} maximum`;
+  document.getElementById('nextNap').textContent=fmtRange(nextMin,nextMax);
+  let napMinutes=0;state.day.naps.forEach(n=>napMinutes+=mins(todayAt(n.start),todayAt(n.end)));
+  document.getElementById('napTotal').textContent=`${state.day.naps.length} nap${state.day.naps.length===1?'':'s'} · ${durationText(napMinutes)} asleep`;
+  let cursor=addMin(ws,(ww.min+ww.max)/2);
+  for(let i=wakeIndex;i<state.settings.wakeWindows.length-1;i++){cursor=addMin(cursor,state.settings.napTarget);const next=state.settings.wakeWindows[i+1];cursor=addMin(cursor,(next.min+next.max)/2)}
+  const bStart=todayAt(state.settings.bedtimeStart),bEnd=todayAt(state.settings.bedtimeEnd);
+  document.getElementById('bedtime').textContent=fmt(cursor);
+  let bedtimeSub,guidance;
+  if(cursor<bStart){const amt=Math.abs(mins(cursor,bStart));bedtimeSub=`About ${durationText(amt)} earlier than target`;guidance=`The current projection is early. You have room for a longer remaining nap or the upper end of the next wake window without pushing bedtime late.`}
+  else if(cursor>bEnd){const amt=Math.abs(mins(bEnd,cursor));bedtimeSub=`About ${durationText(amt)} later than target`;guidance=`The day is projecting late by about ${durationText(amt)}. The safest correction is usually the final nap: shorten it modestly rather than forcing an unusually long wake window.`}
+  else{bedtimeSub=`Inside ${fmt(bStart)}–${fmt(bEnd)} target`;guidance=`The day is currently tracking inside your bedtime window. Keep the next nap near ${durationText(state.settings.napTarget)} and use the normal wake-window range.`}
+  document.getElementById('bedtimeSub').textContent=bedtimeSub;document.getElementById('guidanceText').textContent=guidance;
+  const tl=document.getElementById('timeline');tl.innerHTML='';
+  addEvent('☀️','Morning wake','Day started',fmt(todayAt(state.day.morningWake)));
+  state.day.naps.forEach((n,i)=>addEvent('☾',`Nap ${i+1}`,durationText(mins(todayAt(n.start),todayAt(n.end))),`${fmt(todayAt(n.start))}–${fmt(todayAt(n.end))}`));
+  addEvent('○','Next nap','Projected',fmtRange(nextMin,nextMax),true);addEvent('✦','Bedtime','Projected',fmt(cursor),true)
+}
+function openSheet(name){document.getElementById('backdrop').classList.add('open');document.getElementById(name+'-sheet').classList.add('open');if(name==='nap'){const now=new Date(),t=String(now.getHours()).padStart(2,'0')+':'+String(now.getMinutes()).padStart(2,'0');document.getElementById('napEnd').value=t}if(name==='settings')fillSettings()}
+function closeSheets(){document.getElementById('backdrop').classList.remove('open');document.querySelectorAll('.sheet').forEach(x=>x.classList.remove('open'))}
+function saveNap(){const start=document.getElementById('napStart').value,end=document.getElementById('napEnd').value;if(!start||!end)return;state.day.naps.push({start,end});state.day.naps.sort((a,b)=>a.start.localeCompare(b.start));saveState();closeSheets();render()}
+function logMorningWake(){const v=prompt('Morning wake time (24-hour HH:MM)',state.day.morningWake);if(v&&/^\d{2}:\d{2}$/.test(v)){state.day.morningWake=v;saveState();render()}}
+function fillSettings(){document.getElementById('bedStart').value=state.settings.bedtimeStart;document.getElementById('bedEnd').value=state.settings.bedtimeEnd;document.getElementById('napTarget').value=state.settings.napTarget;state.settings.wakeWindows.forEach((w,i)=>{document.getElementById(`ww${i+1}Min`).value=w.min;document.getElementById(`ww${i+1}Max`).value=w.max})}
+function saveSettings(){state.settings.bedtimeStart=document.getElementById('bedStart').value;state.settings.bedtimeEnd=document.getElementById('bedEnd').value;state.settings.napTarget=Number(document.getElementById('napTarget').value)||90;state.settings.wakeWindows=state.settings.wakeWindows.map((w,i)=>({min:Number(document.getElementById(`ww${i+1}Min`).value)||w.min,max:Number(document.getElementById(`ww${i+1}Max`).value)||w.max}));saveState();closeSheets();render()}
+function setTheme(theme){state.theme=theme;saveState();render()}
+render();setInterval(render,60000);
+</script>
+</body>
+</html>

@@ -1,0 +1,44 @@
+G
+Example Child
+Day
+Week
+List
+Summary
+Nap total
+1h 56min
+Breastfeeding
+16m 6s
+Number of sessions
+2
+Sunday, Oct 11
+7am
+8am
+9am
+10am
+11am
+12pm
+1pm
+2pm
+3pm
+4pm
+5pm
+6pm
+5m 32s
+Breast
+10m 34s
+Breast
+1h 56m
+Nap
+Home
+Reports
+Sleep Plans
+Insights
+Child
+GET SLEEP
+Details
+Example Child slept for 1h 56m
+Sunday, October 11, 2026
+9:46 AM - 11:43 AM
+Notes
+Edit
+Done

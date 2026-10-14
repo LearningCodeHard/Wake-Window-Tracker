@@ -1,0 +1,5 @@
+__pycache__/
+*.png
+node_modules/
+tests/test-results.txt
+tests/browser-results.txt
