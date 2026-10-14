@@ -143,3 +143,15 @@ state refresh, rejected actions, no family writes, cached revert, Add choices an
 inline Settings controls. Artifact checksums verify. These are execution/DOM-stub
 checks; iOS rendering/interaction acceptance remains pending. TEST is 2.0.5 at
 sequence 5; PRODUCTION remains accepted 2.0.3 at sequence 3.
+
+## Production 2.0.5 Promotion
+
+The user accepted the flat-menu TEST candidate and requested production
+migration. The production manifest now selects the exact tested 109546-byte
+artifact e1f6e481df25249f02ca047a51ec8431b0b3de6e3f197e85a2d0ac79e38f5fed at
+sequence 4. TEST remains sequence 5. No build or app-byte change was performed.
+Promotion checks, current production installation checks, and data isolation
+regressions pass. The provided PROD launcher 1.0.3 enables direct Updates actions;
+replacing its code preserves installed script name, cache/preferences and shared
+bookmark. No family data was inspected, copied, migrated or modified. Phone
+production rollout remains to be confirmed by the user.

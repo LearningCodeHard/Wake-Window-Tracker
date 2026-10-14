@@ -9,11 +9,11 @@ regression fixtures are published here.
 
 | Installed script | Initial app | Channel | Data |
 |---|---|---|---|
-| Wake_Window_PROD (or existing production name) | 2.0.3 | production | Existing WakeWindowShared bookmark |
+| Wake_Window_PROD (or existing production name) | 2.0.5 | production | Existing WakeWindowShared bookmark |
 | Wake_Window_TEST | 2.0.5 | test | Demo by default; optional WakeWindowTestShared |
 
 V1 functionality was accepted in the previous project chat. The new launcher
-integration was tested by the user, who authorized V2.0.3 production promotion
+integration was tested by the user, who authorized V2.0.5 production promotion
 on October 14. [Release acceptance](RELEASE_ACCEPTANCE.md) records the exact hash. The baseline is an archived snapshot; ongoing development
 uses one maintained V2 codebase, and promotion copies its exact artifact without
 rebuilding. No family records or credentials belong in GitHub.
@@ -46,7 +46,7 @@ After the user accepts the candidate on both phones, record the **exact SHA-256*
 shown by `channels/test.json`. Promote that artifact:
 
 ```sh
-python3 tools/release.py promote --sequence 4 --accepted-sha256 EXACT_TESTED_SHA256
+python3 tools/release.py promote --sequence 5 --accepted-sha256 EXACT_TESTED_SHA256
 python3 tools/release.py verify
 ```
 
@@ -89,7 +89,7 @@ See [PHONE_ACCEPTANCE.md](PHONE_ACCEPTANCE.md) and [VALIDATION_RELEASE.md](VALID
 [importModule](https://docs.scriptable.app/importmodule/),
 [Keychain](https://docs.scriptable.app/keychain/).
 
-## TEST 2.0.5 navigation
+## 2.0.5 Navigation
 
 Graham’s Day Planner is the common header. Version, channel, read/save status
 and demo identity are the final content below the buttons. Morning Wake and
@@ -100,7 +100,8 @@ reset and conflicting saved versions inline. The warning’s Review Adjustments
 shortcut opens the same management controls. Confirmation screens still protect
 deletions/reset; they are not navigation menus.
 
-Production remains accepted 2.0.3 until this candidate is accepted and promoted.
+Both channels select the accepted 2.0.5 artifact; production sequence is 4 and
+test sequence is 5.
 App changes arrive automatically; flat updater actions require the new direct
 bridge in launcher 1.0.3, so replace the installed launcher once. Older launchers
 still run the candidate and can use UPDATE_SETTINGS for native recovery controls.

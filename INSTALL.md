@@ -36,8 +36,8 @@ Open Huckleberry → Get on-screen Text → Combine Text (New Lines) → Scripta
 Run Script. Select your production script and retain the Combined Text parameter and
 **Run in App: ON**. The launcher forwards the parameter unchanged.
 
-Run production. Confirm **2.0.3 · PRODUCTION** and your actual records.
-Production now uses the accepted V2.0.3 app. The test channel remains separate.
+Run production. Confirm **2.0.5 · PRODUCTION** and your actual records.
+Production now uses the accepted V2.0.5 app. The test channel remains separate.
 Run Test again and confirm it still has demo records, not family records.
 
 ## 4. Optional: test imports and phone sharing safely
@@ -56,7 +56,7 @@ Fabricated events belong only in this folder. Switch back using
 
 ## Update controls and rollback
 
-Both dashboards have an **Updates** button. In TEST 2.0.5, pause/resume automatic
+Both dashboards have an **Updates** button. In 2.0.5, pause/resume automatic
 updates or select **Revert Update** directly within it.
 **Two-Phone Check** is also inside Updates. Preferences and rollback
 take effect on the next launch; close the current dashboard before reopening.
@@ -85,4 +85,5 @@ retaining script names. This connects the flat Updates buttons directly to the
 updater, without another native choice menu. It does not clear preferences,
 cached versions or sleep data. Earlier launchers still receive the app update,
 but its Updates screen asks for launcher 1.0.3; UPDATE_SETTINGS recovery remains
-available. TEST 2.0.5 awaits phone acceptance; production stays on 2.0.3.
+available. The user accepted TEST 2.0.5; production now selects the same artifact. Confirm
+2.0.5 · PRODUCTION and existing records on each phone after updating.

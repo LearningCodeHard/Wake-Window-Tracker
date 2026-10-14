@@ -4,7 +4,7 @@ Do not promote V2 merely because automated checks pass. Confirm on both iPhones:
 
 1. Test installs from GitHub and opens with **Graham’s Day Planner** in the header and **2.0.5 · TEST · Demo only** in the footer.
 2. Production installs in the existing script name, retains real records, and
-   shows **2.0.3 · PRODUCTION**. Existing Huckleberry Shortcut still
+   shows **2.0.5 · PRODUCTION**. Existing Huckleberry Shortcut still
    opens the review screen without saving an import before confirmation.
 3. Close, use airplane mode, reopen both channels: cached dashboards open.
    Offline iCloud availability is a separate check from cached application code.
@@ -41,3 +41,9 @@ Review Adjustments remains a shortcut from the warning. Install launcher 1.0.3
 and check direct Updates actions: pause/resume, test-mode switching and revert.
 No new app/data mode takes effect until reopening. Two-Phone Check opens its form
 from Updates; deleting/resetting still requires confirmation.
+
+The user accepted TEST 2.0.5 on October 14 and requested production migration.
+The exact artifact is promoted at production sequence 4. Install production
+launcher 1.0.3 once for direct Updates controls, retaining Wake_Window_PROD and
+WakeWindowShared. Then verify version/channel, existing actuals/settings and
+Huckleberry import review on each phone. These rollout results remain unreported.
