@@ -1,8 +1,8 @@
 <!DOCTYPE html>
 <html lang="en" data-theme="dark"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><title>Wake Window</title><style>__PROTOTYPE_CSS__</style></head><body>
 <div id="toast" class="toast" role="status"></div><main id="app">
-<header class="header"><div><h1>Wake Window</h1><div class="date" id="dateText"></div></div><div class="header-tools"><button class="icon-btn" onclick="theme()" aria-label="Switch light and dark">◐</button><button class="icon-btn" onclick="settingsSheet()" aria-label="Settings">⚙</button></div></header>
-<div id="demoBanner" class="banner" hidden></div><div id="notice" class="banner warning" hidden></div>
+<header class="header"><div><h1 id="appTitle">Wake Window</h1><div class="date" id="dateText"></div></div><div class="header-tools"><button class="icon-btn" onclick="theme()" aria-label="Switch light and dark">◐</button><button class="icon-btn" onclick="settingsSheet()" aria-label="Settings">⚙</button></div></header>
+<div id="notice" class="banner warning" hidden></div>
 <div class="day-picker"><div class="date-frame"><input aria-label="View date" type="date" id="viewDate" onchange="changeDay(this.value)"></div><button class="small-btn" onclick="changeDay(WW.parts(clock(),S.settings.timezone).date)">Today</button></div>
 <section class="current-state"><div class="current-main" id="currentState"></div><div class="current-sub" id="currentSince"></div></section>
 <section><div class="section-head"><h2 id="timelineTitle">Rest of today</h2><span class="section-note" id="timelineNote">Suggested</span></div><div class="timeline" id="timeline"></div></section>

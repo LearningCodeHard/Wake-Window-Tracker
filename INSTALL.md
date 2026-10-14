@@ -16,7 +16,7 @@ Repository location and download access are part of the installed launcher.
 Create a Scriptable script named **Wake_Window_TEST**. Replace all of its code
 with [launchers/Wake_Window_Test.txt](launchers/Wake_Window_Test.txt).
 Run it in Scriptable. There is no token prompt. The dashboard should show
-**2.0.2 · TEST** and the **DEMO** banner. Demo edits never reach shared files.
+**Wake Window TEST** in the header and **2.0.3 · TEST · Demo only** in the footer. Demo edits never reach shared files.
 
 The test launcher stays in demo mode even if a Shortcut sends timer text. For
 import or two-phone sharing tests, use the separate test folder below.

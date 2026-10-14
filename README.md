@@ -10,7 +10,7 @@ regression fixtures are published here.
 | Installed script | Initial app | Channel | Data |
 |---|---|---|---|
 | Existing production script name, e.g. Wake Window V1 | 1.1.3 | production | Existing WakeWindowShared bookmark |
-| Wake Window Test | 2.0.2 | test | Demo by default; optional WakeWindowTestShared |
+| Wake Window Test | 2.0.3 | test | Demo by default; optional WakeWindowTestShared |
 
 V1 functionality was accepted in the previous project chat. The new launcher
 integration and V2 candidate still require phone acceptance. Production has not
@@ -34,7 +34,7 @@ Never edit an existing release artifact. Old artifacts remain recoverable in Git
 python3 build.py
 node --test tests/core.test.js tests/planning.test.js tests/adapter.test.js tests/dashboard.test.js tests/updater.test.js
 python3 tests/release_tools_test.py
-python3 tools/release.py candidate --sequence 3
+python3 tools/release.py candidate --sequence 4
 python3 tools/release.py verify
 ```
 

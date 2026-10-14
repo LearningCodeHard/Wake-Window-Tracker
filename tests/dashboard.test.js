@@ -13,6 +13,12 @@ function screen(){
  return {context,nodes,run:s=>vm.runInContext(s,context)};
 }
 test('demo UI presents the exact noon schedule and bedtime once',()=>{const s=screen();const t=s.nodes.get('timeline').innerHTML;assert.match(t,/2:00 PM/);assert.match(t,/5:00 PM/);assert.equal((t.match(/8:00 PM/g)||[]).length,1);assert.match(s.nodes.get('guidanceText').textContent,/boundary/);});
+test('test identity stays explicit in demo and folder modes without a demo banner',()=>{
+ const s=screen();s.run("S.release={channel:'test',version:'2.0.3'};render()");assert.equal(s.nodes.get('appTitle').textContent,'Wake Window TEST');assert.match(s.nodes.get('saveState').textContent,/TEST.*Demo only.*clock 12:00 PM.*no shared writes/);assert.doesNotMatch(html,/id="demoBanner"/);
+ s.run("S.now+=90*60000;render()");assert.match(s.nodes.get('saveState').textContent,/clock 1:30 PM/);
+ s.run("S.mode='live';render()");assert.equal(s.nodes.get('appTitle').textContent,'Wake Window TEST');assert.match(s.nodes.get('saveState').textContent,/TEST.*Test folder/);
+ s.run("S.release.channel='production';render()");assert.equal(s.nodes.get('appTitle').textContent,'Wake Window');assert.doesNotMatch(s.nodes.get('saveState').textContent,/TEST|Demo only|Test folder/);
+});
 test('appointment form sends selected day and captured planning revision',async()=>{
  const s=screen();s.run("S.revisions.planning='plan-r1';awakeSheet()");s.nodes.get('awakeStart').value='14:00';s.nodes.get('awakeEnd').value='14:30';const promise=s.run('saveAwake()'),q=s.context.__queue.shift();assert.equal(q.action,'awakePeriod');assert.equal(q.data.base,'plan-r1');assert.equal(q.data.date,'2026-10-05');assert.equal(q.data.start,'14:00');s.context.receive({id:q.id,message:'Saved'});await promise;
 });

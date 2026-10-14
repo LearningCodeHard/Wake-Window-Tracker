@@ -6,7 +6,8 @@ function eventRow(title,sub,start,end,click='',classes='',tag=''){
 }
 function render(){
   $('viewDate').value=S.date;$('dateText').textContent=new Intl.DateTimeFormat('en-US',{timeZone:S.settings.timezone,weekday:'long',month:'long',day:'numeric'}).format(new Date(WW.wall(S.date,'12:00',S.settings.timezone)));
-  $('demoBanner').hidden=S.mode!=='demo';$('demoAdvance').hidden=S.mode!=='demo';$('demoBanner').textContent=`DEMO · Clock fixed at ${fmt(clock())}. Changes stay in this demo.`;
+  $('appTitle').textContent=S.release&&S.release.channel==='test'?'Wake Window TEST':'Wake Window';
+  $('demoAdvance').hidden=S.mode!=='demo';
   const d=S.day,completed=d.naps.filter(n=>n.end!==null),active=d.naps.find(n=>n.end===null),historical=S.date!==WW.parts(clock(),S.settings.timezone).date;
   const total=Math.round(completed.reduce((a,n)=>a+(Date.parse(n.end)-Date.parse(n.start))/60000,0));
   let p;try{p=WW.plan(d,S.settings,clock());}catch(e){p={status:'error',events:[],message:e.message,notes:[]};}currentPlan=p;
@@ -34,8 +35,8 @@ function render(){
   $('napTotal').textContent=`${completed.length} completed · ${dur(total)}`;
   const attention=['blocked','adjust','overdue','active-overdue','error'].includes(p.status)&&!historical;
   $('guidance').hidden=!attention;$('guidanceTitle').textContent=p.status==='active-overdue'?'Update expected wake':p.status==='blocked'?'Plan needs an adjustment':p.status==='adjust'?'Bedtime outlook':'Planning status';$('guidanceText').textContent=p.message||'';
-  const release=S.release?`${S.release.version} · ${S.release.channel.toUpperCase()} · `:'2.0.2 · Manual · ';
-  $('saveState').textContent=release+(S.mode==='demo'?'Demo only · no shared writes':`${S.release&&S.release.channel==='test'?'Test folder · ':''}Shared files read on this phone at ${fmt(S.checkedAt)}.${S.lastSavedAt?' Last local save '+fmt(S.lastSavedAt)+'.':''} Refresh the other phone to read shared changes.`);
+  const release=S.release?`${S.release.version} · ${S.release.channel.toUpperCase()} · `:'2.0.3 · Manual · ';
+  $('saveState').textContent=release+(S.mode==='demo'?`Demo only · clock ${fmt(clock())} · no shared writes`:`${S.release&&S.release.channel==='test'?'Test folder · ':''}Shared files read on this phone at ${fmt(S.checkedAt)}.${S.lastSavedAt?' Last local save '+fmt(S.lastSavedAt)+'.':''} Refresh the other phone to read shared changes.`);
   $('updatesButton').hidden=!(S.release&&S.release.updates);
   $('operationState').textContent=lastOperation;
 }

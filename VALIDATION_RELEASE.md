@@ -1,6 +1,6 @@
 # Release-system validation — October 13, 2026
 
-193 automated checks pass:
+194 automated checks pass:
 
 - 145 recovered scheduling, planning, adapter and UI regression checks.
 - 21 updater checks: SHA-256 against Node crypto (including Unicode, padding
@@ -83,3 +83,18 @@ with a single-column sheet and bounded widths. Browser-check selectors now
 use the native inputs. No browser executable is available here; actual iOS
 picker presentation/width still needs phone acceptance. The TEST channel
 selects 2.0.2 at sequence 2. Production remains on 1.1.3 at sequence 2.
+
+## TEST 2.0.3 — header clearance and quiet demo identity
+
+The user approves the native time picker in 2.0.2. Their next phone screenshot
+shows Scriptable's native Close/Share toolbar overlapping the HTML header and
+Settings control. Removing the demo banner does not address that top inset.
+This candidate reserves 64 px plus the top safe area above the page content,
+keeps toolbar actions from shrinking, removes the demo banner, and renders
+Wake Window TEST for the test channel. The footer retains version/channel,
+demo-only/no-shared-writes status and demo clock; folder mode retains its test
+identity. A regression covers identity across demo/folder/production states
+and demo-clock advancement. All 194 checks pass (188 Node and 6 Python).
+
+The exact native toolbar clearance still needs the reporting phone's check.
+The TEST manifest is 2.0.3 at sequence 3. Production remains 1.1.3.
