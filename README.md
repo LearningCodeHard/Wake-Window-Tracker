@@ -10,7 +10,7 @@ regression fixtures are published here.
 | Installed script | Initial app | Channel | Data |
 |---|---|---|---|
 | Wake_Window_PROD (or existing production name) | 2.0.3 | production | Existing WakeWindowShared bookmark |
-| Wake_Window_TEST | 2.0.4 | test | Demo by default; optional WakeWindowTestShared |
+| Wake_Window_TEST | 2.0.5 | test | Demo by default; optional WakeWindowTestShared |
 
 V1 functionality was accepted in the previous project chat. The new launcher
 integration was tested by the user, who authorized V2.0.3 production promotion
@@ -34,7 +34,7 @@ Never edit an existing release artifact. Old artifacts remain recoverable in Git
 python3 build.py
 node --test tests/core.test.js tests/planning.test.js tests/adapter.test.js tests/dashboard.test.js tests/updater.test.js
 python3 tests/release_tools_test.py
-python3 tools/release.py candidate --sequence 5
+python3 tools/release.py candidate --sequence 6
 python3 tools/release.py verify
 ```
 
@@ -89,17 +89,18 @@ See [PHONE_ACCEPTANCE.md](PHONE_ACCEPTANCE.md) and [VALIDATION_RELEASE.md](VALID
 [importModule](https://docs.scriptable.app/importmodule/),
 [Keychain](https://docs.scriptable.app/keychain/).
 
-## TEST 2.0.4 navigation
+## TEST 2.0.5 navigation
 
-Both channels use Graham’s Day Planner as the app header when this candidate is
-selected. Version, channel, read/save status and demo identity are the final
-content below the buttons. Morning Wake and Change Bedtime open their forms
-directly; Add offers appointments and naps. Updates contains Two-Phone Check
-and Update Controls. Settings contains Day Adjustments; reset appears when
-appointments/pins exist, and conflicting planning revisions open the retained
-version picker. Native minute-precision time fields remain unchanged.
+Graham’s Day Planner is the common header. Version, channel, read/save status
+and demo identity are the final content below the buttons. Morning Wake and
+Change Bedtime open directly. Add opens appointment, Start Nap and Log Completed
+Nap forms directly, without a second choice menu. Updates lists updater actions
+alongside Two-Phone Check. Settings displays existing appointments, nap pins,
+reset and conflicting saved versions inline. The warning’s Review Adjustments
+shortcut opens the same management controls. Confirmation screens still protect
+deletions/reset; they are not navigation menus.
 
-Production remains on accepted 2.0.3 until this candidate is accepted and
-promoted. App changes arrive automatically; Title Case labels in the native
-update menu require replacing the installed launcher once with launcher 1.0.2.
-Older launchers still download and run this app candidate.
+Production remains accepted 2.0.3 until this candidate is accepted and promoted.
+App changes arrive automatically; flat updater actions require the new direct
+bridge in launcher 1.0.3, so replace the installed launcher once. Older launchers
+still run the candidate and can use UPDATE_SETTINGS for native recovery controls.

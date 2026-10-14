@@ -37,7 +37,7 @@ async function runWakeWindow(runtime={}) {
     const naps=Object.entries(reduced.latest).filter(([k,r])=>k.startsWith('nap:'+selectedDate+':')&&!r.deleted).map(([entity,r])=>({...r.value,entity,revision:r.id})).sort((a,b)=>Date.parse(a.start)-Date.parse(b.start));
     // Distinct imports of identical times display once, even after delayed sync.
     const seen=new Set(),unique=naps.filter(n=>{const k=WW.napKey(n.start,n.end);if(seen.has(k))return false;seen.add(k);return true;});
-    snapshot={mode:demo?'demo':'live',release:{version:runtime.version||APP_VERSION,channel:runtime.channel||'manual',status:runtime.status||'',updates:typeof runtime.updates==='function'},now:now(),date:selectedDate,settings,
+    snapshot={mode:demo?'demo':'live',release:{version:runtime.version||APP_VERSION,channel:runtime.channel||'manual',status:runtime.status||'',updates:typeof runtime.updates==='function',updateInfo:typeof runtime.updateInfo==='function'?runtime.updateInfo():null},now:now(),date:selectedDate,settings,
       day:{date:selectedDate,morning:morning&&!morning.deleted?morning.value:null,bedtime:bed&&!bed.deleted?bed.value:null,naps:unique,planning:WW.copy(planningData),planningConflict},planningVersions,
       revisions:{settings:get('settings')?get('settings').id:null,morning:morning?morning.id:null,bedtime:bed?bed.id:null,planning:planning?planning.id:null},
       conflicts:reduced.conflicts,checkedAt:Date.now(),lastSavedAt,warnings:[],probes:await readProbes(),imported};
@@ -59,6 +59,11 @@ async function runWakeWindow(runtime={}) {
     if(action==='updates'){
       if(typeof runtime.updates!=='function')throw Error('Open update settings from the installed launcher.');
       return {message:await runtime.updates()};
+    }
+    if(action==='updateControl'){
+      if(typeof runtime.updateAction!=='function'||typeof runtime.updateInfo!=='function')throw Error('Replace the installed launcher with version 1.0.3 to use these controls.');
+      const message=await runtime.updateAction(d.id);
+      return {message,updateInfo:runtime.updateInfo()};
     }
     if(action==='load'){const requested=d.date||date;if(!/^\d{4}-\d{2}-\d{2}$/.test(requested))throw Error('Choose a date.');WW.wall(requested,'12:00',snapshot.settings.timezone);return {snapshot:await load(requested)};}
     if(action==='advance'){if(!demo)throw Error('Only available in the demo.');demoNow+=90*60000;return {snapshot:await load(date),message:'Demo clock advanced 90 minutes.'};}

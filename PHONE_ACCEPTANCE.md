@@ -2,7 +2,7 @@
 
 Do not promote V2 merely because automated checks pass. Confirm on both iPhones:
 
-1. Test installs from GitHub and opens with **Graham’s Day Planner** in the header and **2.0.4 · TEST · Demo only** in the footer.
+1. Test installs from GitHub and opens with **Graham’s Day Planner** in the header and **2.0.5 · TEST · Demo only** in the footer.
 2. Production installs in the existing script name, retains real records, and
    shows **2.0.3 · PRODUCTION**. Existing Huckleberry Shortcut still
    opens the review screen without saving an import before confirmation.
@@ -31,9 +31,13 @@ remains available for regression checks; individual unreported outcomes are not
 assumed complete. See RELEASE_ACCEPTANCE.md for the evidence and accepted hash.
 No live sleep records were inspected or changed during this implementation.
 
-For TEST 2.0.4, confirm the header clears Scriptable’s Close/Share toolbar, the
-footer identifies TEST and appears below all buttons, and Morning Wake/Change
-Bedtime open directly. Add must contain appointments/naps without Morning Wake.
-Check Updates → Two-Phone Check, Updates → Update Controls, and Settings → Day
-Adjustments (reset with saved adjustments; version selection with conflicts).
-Launcher 1.0.2 is needed to refresh native update-menu capitalization.
+For TEST 2.0.5, confirm the header clears Scriptable’s Close/Share toolbar and
+the channel/status footer appears below every button. Morning Wake/Change
+Bedtime must open directly. Add must offer Keep Awake - Appointment, Start Nap,
+and Log Completed Nap, without another choice menu; Start Nap is disabled when
+already asleep. Settings must display appointment/pin controls inline, with reset
+only when saved adjustments exist and version choices when plans conflict.
+Review Adjustments remains a shortcut from the warning. Install launcher 1.0.3
+and check direct Updates actions: pause/resume, test-mode switching and revert.
+No new app/data mode takes effect until reopening. Two-Phone Check opens its form
+from Updates; deleting/resetting still requires confirmation.

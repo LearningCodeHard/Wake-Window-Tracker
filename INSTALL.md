@@ -16,7 +16,7 @@ Repository location and download access are part of the installed launcher.
 Create a Scriptable script named **Wake_Window_TEST**. Replace all of its code
 with [launchers/Wake_Window_Test.txt](launchers/Wake_Window_Test.txt).
 Run it in Scriptable. There is no token prompt. The dashboard should show
-**Graham’s Day Planner** in the header and **2.0.4 · TEST · Demo only** in the footer. Demo edits never reach shared files.
+**Graham’s Day Planner** in the header and **2.0.5 · TEST · Demo only** in the footer. Demo edits never reach shared files.
 
 The test launcher stays in demo mode even if a Shortcut sends timer text. For
 import or two-phone sharing tests, use the separate test folder below.
@@ -48,16 +48,16 @@ create a Scriptable File Bookmark named **WakeWindowTestShared**, pointing at
 that same test folder. Keep **WakeWindowShared** configured too, so the app can
 check that the folders differ. Neither folder may be inside the other.
 
-In Test, open **Updates → Update Controls → Use Separate Test Folder**, close the dashboard, and
+In Test, open **Updates → Use Separate Test Folder**, close the dashboard, and
 run Test again. Confirm **TEST · Test folder** in the footer. Point a copied
 Huckleberry Shortcut at **Wake_Window_TEST** for import acceptance.
 Fabricated events belong only in this folder. Switch back using
-**Updates → Update Controls → Use Demo Data**, close and reopen.
+**Updates → Use Demo Data**, close and reopen.
 
 ## Update controls and rollback
 
-Both dashboards have an **Updates** button. In TEST 2.0.4, open **Update Controls**
-inside it to pause/resume automatic updates or select **Revert Update**.
+Both dashboards have an **Updates** button. In TEST 2.0.5, pause/resume automatic
+updates or select **Revert Update** directly within it.
 **Two-Phone Check** is also inside Updates. Preferences and rollback
 take effect on the next launch; close the current dashboard before reopening.
 Revert becomes useful after that phone has received a second version.
@@ -72,17 +72,17 @@ download. Keep the Backup script until both phones pass the acceptance checks.
 
 ## Manifest error diagnostics
 
-Launcher **1.0.2** reports the exact manifest field/value that fails validation.
+Launcher **1.0.3** reports the exact manifest field/value that fails validation.
 If PROD shows a manifest error, replace its complete launcher code from the
 production link above; keep the script name and bookmark. Copy the full new
 error message, including the launcher/channel/repository lines. TEST can keep
 its current working launcher while PROD is diagnosed.
 
-## Launcher 1.0.2 label refresh
+## Launcher 1.0.3 direct update controls
 
-For Title Case labels in the native update menu, replace the complete installed
-launcher code from the links above once, retaining the script names. This does
-not clear channel preferences, cached versions, or sleep data. Installed 1.0.1
-launchers still receive the app update automatically, but keep their old native
-menu labels until replaced. TEST 2.0.4 awaits phone acceptance; production stays
-on 2.0.3.
+Replace the complete installed launcher code from the links above once,
+retaining script names. This connects the flat Updates buttons directly to the
+updater, without another native choice menu. It does not clear preferences,
+cached versions or sleep data. Earlier launchers still receive the app update,
+but its Updates screen asks for launcher 1.0.3; UPDATE_SETTINGS recovery remains
+available. TEST 2.0.5 awaits phone acceptance; production stays on 2.0.3.

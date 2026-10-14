@@ -120,3 +120,26 @@ regressions exercise footer order, direct/add routing, Settings access, reset
 visibility, channel identity, and update-menu bridge behavior. These checks do
 not verify iOS rendering; phone acceptance remains pending. TEST is 2.0.4 at
 sequence 4; PRODUCTION remains accepted 2.0.3 at sequence 3.
+
+## TEST 2.0.5 — flat menus and inline adjustment management
+
+Add now offers Keep Awake - Appointment, Start Nap and Log Completed Nap, each
+opening its form directly. A second active nap cannot be started through Add.
+Updates shows updater actions and Two-Phone Check together. Launcher 1.0.3
+exposes allowlisted direct actions and refreshed serializable control state;
+the native UPDATE_SETTINGS recovery menu remains. Earlier launchers still run
+the app but must be replaced for direct Updates controls. Unsupported/stale
+actions refuse without sleep-data writes; production cannot select test modes.
+Revert still blocks the rejected hash, and changes apply on reopening.
+
+Settings displays saved appointments, pins, conditional reset and conflicting
+version choices inline, replacing its Day Adjustments button. The warning’s
+Review Adjustments shortcut remains. Forms and destructive confirmations remain;
+choice-menu nesting was removed. Scheduling, records, native time fields,
+production pointer, Refresh and footer order are unchanged.
+
+All 205 checks pass (199 Node and 6 Python), including direct bridge routing,
+state refresh, rejected actions, no family writes, cached revert, Add choices and
+inline Settings controls. Artifact checksums verify. These are execution/DOM-stub
+checks; iOS rendering/interaction acceptance remains pending. TEST is 2.0.5 at
+sequence 5; PRODUCTION remains accepted 2.0.3 at sequence 3.

@@ -38,7 +38,7 @@ def launchers():
     engine=(BASE/'updater/engine.js').read_text();tail=(BASE/'updater/launcher-tail.js').read_text()
     for name,channel in [('Wake_Window','production'),('Wake_Window_Test','test')]:
         cfg={k:CONFIG[k] for k in ['repository','basePath']};cfg['downloadMode']=CONFIG.get('downloadMode','private');cfg['channel']=channel
-        content='// Variables used by Scriptable.\n// icon-color: '+('green' if channel=='production' else 'orange')+'; icon-glyph: moon;\n// Wake Window launcher 1.0.2\nconst CONFIG='+json.dumps(cfg)+';\n'+engine+'\n'+tail
+        content='// Variables used by Scriptable.\n// icon-color: '+('green' if channel=='production' else 'orange')+'; icon-glyph: moon;\n// Wake Window launcher 1.0.3\nconst CONFIG='+json.dumps(cfg)+';\n'+engine+'\n'+tail
         for ext in ['js','txt']:
             (BASE/'launchers').mkdir(exist_ok=True);(BASE/'launchers'/f'{name}.{ext}').write_text(content)
 def candidate(sequence):

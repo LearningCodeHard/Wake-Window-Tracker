@@ -204,3 +204,11 @@ test('unrecognized OCR offers manual fallback without touching records',async()=
 test('old-day records remain distinct from today',async()=>{
  const store=shared();const r=await run(store,[command(1,'nap',{date:'2026-10-04',start:'10:00',end:'11:00'}),command(2,'load',{date:'2026-10-05'})]);assert.equal(r.snap.day.naps.length,0);assert.equal(store.files.size,1);
 });
+
+test('candidate routes direct updater actions without shared reads or sleep writes and returns refreshed control labels',async()=>{
+ const store=shared();let paused=false;const info=()=>({actions:[{id:paused?'resume':'pause',label:paused?'Resume Automatic Updates':'Pause Automatic Updates',enabled:true}],status:'Up to date'});
+ const r=await run(store,[command(1,'updateControl',{id:'pause'})],'OPEN',{channel:'test',version:'2.0.5',updateInfo:info,updateAction:async id=>{assert.equal(id,'pause');paused=true;return 'Preference saved';}});assert.equal(r.responses[0].updateInfo.actions[0].id,'resume');assert.equal(r.responses[0].saveConfirmed,false);assert.equal(r.snap.day.naps.length,1);assert.equal(store.files.size,0);
+});
+test('older launchers run the candidate but unsupported direct controls fail without modifying sleep data',async()=>{
+ const store=shared();const r=await run(store,[command(1,'updateControl',{id:'pause'})],'OPEN',{channel:'test',version:'2.0.5',updates:async()=>{throw Error('must not open nested menu');}});assert.equal(r.snap.release.updateInfo,null);assert.match(r.responses[0].error,/launcher.*1.0.3/);assert.equal(store.files.size,0);
+});

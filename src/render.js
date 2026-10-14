@@ -35,13 +35,22 @@ function render(){
   $('napTotal').textContent=`${completed.length} completed · ${dur(total)}`;
   const attention=['blocked','adjust','overdue','active-overdue','error'].includes(p.status)&&!historical;
   $('guidance').hidden=!attention;$('guidanceTitle').textContent=p.status==='active-overdue'?'Update Expected Wake':p.status==='blocked'?'Plan needs an adjustment':p.status==='adjust'?'Bedtime outlook':'Planning status';$('guidanceText').textContent=p.message||'';
-  const release=S.release?`${S.release.version} · ${S.release.channel.toUpperCase()} · `:'2.0.4 · Manual · ';
+  const release=S.release?`${S.release.version} · ${S.release.channel.toUpperCase()} · `:'2.0.5 · Manual · ';
   $('saveState').textContent=release+(S.mode==='demo'?`Demo only · clock ${fmt(clock())} · no shared writes`:`${S.release&&S.release.channel==='test'?'Test folder · ':''}Shared files read on this phone at ${fmt(S.checkedAt)}.${S.lastSavedAt?' Last local save '+fmt(S.lastSavedAt)+'.':''} Refresh the other phone to read shared changes.`);
   $('operationState').textContent=lastOperation;
 }
-function addSheet(){openSheet('Add to Today',`<div class="nap-menu"><button onclick="awakeSheet()">Keep Awake · Appointment</button><button onclick="napAction()">Start or Log Nap</button></div>`);}
-function updatesSheet(){openSheet('Updates',`<p>${esc(S.release?S.release.version+' · '+S.release.channel.toUpperCase():'Manual Install')}</p><div class="nap-menu">${S.release&&S.release.updates?'<button onclick="openUpdateControls()">Update Controls</button>':''}<button onclick="probeSheet()">Two-Phone Check</button></div>`);}
-async function openUpdateControls(){try{const r=await request('updates');if(r.message)toast(r.message);}catch(e){$('modalError').textContent=e.message;toast(e.message);}}
+function addSheet(){openSheet('Add',`<div class="nap-menu"><button onclick="awakeSheet()">Keep Awake - Appointment</button><button onclick="activeNapSheet()"${activeIndex()>=0?' disabled':''}>Start Nap</button><button onclick="napSheet()">Log Completed Nap</button></div>${activeIndex()>=0?'<p>A nap is already in progress. Use End Nap or tap its expected wake to edit it.</p>':''}`);}
+function updatesSheet(){
+  const info=S.release&&S.release.updateInfo;
+  const controls=info?info.actions.map(a=>`<button onclick="applyUpdateControl(${esc(JSON.stringify(a.id))})"${a.enabled?'':' disabled'}>${esc(a.label)}</button>`).join(''):'';
+  openSheet('Updates',`<p>${esc(S.release?S.release.version+' · '+S.release.channel.toUpperCase():'Manual Install')}</p>${info?`<p>${esc(info.status)}. Changes take effect on the next launch.</p>`:S.release&&S.release.updates?'<p>Install launcher 1.0.3 to show update controls directly here.</p>':''}<div class="nap-menu">${controls}<button onclick="probeSheet()">Two-Phone Check</button></div>`);
+}
+async function applyUpdateControl(id){
+  document.body.classList.add('native-busy');
+  try{const r=await request('updateControl',{id});S.release.updateInfo=r.updateInfo;updatesSheet();if(r.message)toast(r.message);}
+  catch(e){$('modalError').textContent=e.message;toast(e.message);}
+  finally{document.body.classList.remove('native-busy');}
+}
 function awakeSheet(id=null){
   const a=id?dayPlanning().awake.find(x=>x.id===id):null;
   if(id&&!a){toast('This awake period was removed. Refresh to read the day.');return;}
@@ -61,17 +70,18 @@ function pinSheet(ordinal){
 }
 async function savePin(){if(!$('pinStartEnabled').checked&&!$('pinDurationEnabled').checked){$('modalError').textContent='Choose a start or duration to pin, or release the existing pin.';return;}await act('pinNap',{date:window.planningEntryDate,base:window.planningBase,ordinal:window.pinOrdinal,start:$('pinStartEnabled').checked?$('pinStart').value:null,minutes:$('pinDurationEnabled').checked?Number($('pinMinutes').value):null});}
 async function releaseCurrentPin(){await act('releasePin',{date:window.planningEntryDate,base:window.planningBase,id:window.pinEditId});}
-function planningSheet(){
-  if(S.day.planningConflict){planningConflictSheet();return;}
+function planningControls(){
+  if(S.day.planningConflict)return planningConflictControls();
   const data=dayPlanning(),pins=futurePins();
-  const appointments=data.awake.map(a=>`<div class="constraint-row"><strong>${esc(a.label||'Awake period')}</strong><br>${esc(fmt(a.start))}–${esc(fmt(a.end))}<div class="toolbar"><button class="small-btn" onclick="awakeSheet(${esc(JSON.stringify(a.id))})">Edit</button></div></div>`).join('');
-  const pinRows=pins.map(p=>`<div class="constraint-row">Nap ${p.ordinal} · ${esc([p.start?fmt(p.start)+' start':'',p.minutes!==null?dur(p.minutes)+' duration':''].filter(Boolean).join(' · '))}<div class="toolbar"><button class="small-btn" onclick="pinSheet(${p.ordinal})">Edit Pin</button><button class="small-btn" onclick="releasePinFromList(${esc(JSON.stringify(p.id))})">Release</button></div></div>`).join('');
-  openSheet('Day Adjustments',`<p>${esc(napDateNote(S.date))} · Shared planning inputs, separate from actual sleep.</p>${appointments}${pinRows}${!appointments&&!pinRows?'<p>No active adjustments. The planner is automatic.</p>':''}<div class="toolbar"><button class="small-btn" onclick="awakeSheet()">Add Awake Period</button>${data.awake.length||data.pins.length?'<button class="small-btn" onclick="resetPlanningSheet()">Return to Automatic</button>':''}</div>`);
+  const appointments=data.awake.map(a=>`<div class="constraint-row"><strong>${esc(a.label||'Awake period')}</strong><br>${esc(fmt(a.start))}–${esc(fmt(a.end))}<div class="toolbar"><button class="small-btn" onclick="awakeSheet(${esc(JSON.stringify(a.id))})">Edit Appointment</button></div></div>`).join('');
+  const pinRows=pins.map(p=>`<div class="constraint-row">Nap ${p.ordinal} · ${esc([p.start?fmt(p.start)+' start':'',p.minutes!==null?dur(p.minutes)+' duration':''].filter(Boolean).join(' · '))}<div class="toolbar"><button class="small-btn" onclick="pinSheet(${p.ordinal})">Edit Pin</button><button class="small-btn" onclick="releasePinFromList(${esc(JSON.stringify(p.id))})">Release Pin</button></div></div>`).join('');
+  return `<p>${esc(napDateNote(S.date))} · Appointments and nap pins</p>${appointments}${pinRows}${!appointments&&!pinRows?'<p>No active adjustments. Add an appointment using Add, or tap a suggested nap to pin it.</p>':''}${data.awake.length||data.pins.length?'<div class="toolbar"><button class="small-btn" onclick="resetPlanningSheet()">Return to Automatic</button></div>':''}`;
 }
+function planningSheet(){openSheet('Review Adjustments',planningControls());}
 async function releasePinFromList(id){await act('releasePin',{date:S.date,base:S.revisions.planning||null,id});}
 function resetPlanningSheet(){confirmRemoval('Return to automatic?','Remove this day’s awake periods and nap pins? Actual sleep, morning wake, bedtime target and shared settings stay saved.','resetPlanning',{date:S.date,base:S.revisions.planning||null},'Clear Adjustments');}
-function planningConflictSheet(){
+function planningConflictControls(){
   const versions=(S.planningVersions||[]).map(v=>`<div class="constraint-row"><strong>Saved ${esc(fmt(v.at))}</strong><p>${esc(v.value.awake.map(a=>(a.label||'Awake period')+' '+fmt(a.start)+'–'+fmt(a.end)).join('; ')||'No awake periods')}</p><p>${esc(v.value.pins.map(p=>'Nap '+p.ordinal+(p.start?' '+fmt(p.start):'')+(p.minutes!==null?' '+dur(p.minutes):'')).join('; ')||'No pins')}</p><button class="small-btn" onclick="choosePlanningVersion(${esc(JSON.stringify(v.id))})">Use This Version</button></div>`).join('');
-  openSheet('Review shared plan versions',`<p>Both versions are retained. Choose the appointments and pins to use; actual sleep stays intact. After choosing, add any missing appointment from the other version if needed.</p>${versions}`);
+  return `<p>Both versions are retained. Choose the appointments and pins to use; actual sleep stays intact. After choosing, add any missing appointment from the other version if needed.</p>${versions}`;
 }
 function choosePlanningVersion(version){confirmRemoval('Use this plan version?','Use the appointments and pins from this version? Other saved revisions remain in history. Actual sleep and settings are unchanged.','resolvePlanning',{date:S.date,base:S.revisions.planning||null,version},'Use Version');}

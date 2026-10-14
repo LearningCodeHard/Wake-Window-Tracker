@@ -89,22 +89,29 @@ function createUpdater(config,env) {
       status='Updated to '+m.version;
     }catch(e){status='Cached version · '+e.message;if(!valid(state.active)&&!valid(state.previous))throw e;}
   }
-  async function menu(){
-    const a=alert();a.title='Graham’s Day Planner · Updates';a.message=channel.toUpperCase()+' · '+(state.active?state.active.version:'Not installed')+'\n'+status+'\nChanges take effect on the next launch.';
-    const actions=[{id:'revert',label:'Revert Update'},{id:'pause',label:state.paused?'Resume Automatic Updates':'Pause Automatic Updates'}];
-    if(!publicDownloads)actions.push({id:'token',label:'Change GitHub Token'});
-    if(channel==='test')actions.push({id:'testMode',label:state.testMode==='demo'?'Use Separate Test Folder':'Use Demo Data'});
-    for(const x of actions)a.addAction(x.label);a.addCancelAction('Close');const pick=await a.presentSheet(),choice=actions[pick];
-    if(!choice)return 'Update settings closed.';
-    if(choice.id==='revert'){
+  function updateInfo(){
+    const actions=[{id:'revert',label:'Revert Update',enabled:valid(state.previous)},{id:state.paused?'resume':'pause',label:state.paused?'Resume Automatic Updates':'Pause Automatic Updates',enabled:true}];
+    if(!publicDownloads)actions.push({id:'token',label:'Change GitHub Token',enabled:true});
+    if(channel==='test')actions.push({id:state.testMode==='demo'?'testFolder':'testDemo',label:state.testMode==='demo'?'Use Separate Test Folder':'Use Demo Data',enabled:true});
+    return {actions,status,paused:state.paused,testMode:state.testMode};
+  }
+  async function updateAction(id){
+    const choice=updateInfo().actions.find(x=>x.id===id);
+    if(!choice)throw Error('This update control changed. Close and reopen Updates to read the current controls.');
+    if(id==='revert'){
       if(!valid(state.previous))throw Error('No verified previous release is available on this phone.');
       save({...state,active:state.previous,previous:state.active,blocked:[...new Set([...state.blocked,state.active.sha256])]});
       return 'Previous version selected. Close and reopen the dashboard.';
     }
-    if(choice.id==='pause'){save({...state,paused:!state.paused});return 'Update preference saved. Applies on the next launch.';}
-    if(choice.id==='token'){await setToken();return 'Token setup closed. Applies on the next launch.';}
-    if(choice.id==='testMode'){save({...state,testMode:state.testMode==='demo'?'folder':'demo'});return 'Test data mode saved. Close and reopen the dashboard.';}
-    return 'Update settings closed.';
+    if(id==='pause'||id==='resume'){save({...state,paused:id==='pause'});return 'Update preference saved. Applies on the next launch.';}
+    if(id==='token'){await setToken();return 'Token setup closed. Applies on the next launch.';}
+    if(id==='testFolder'||id==='testDemo'){save({...state,testMode:id==='testFolder'?'folder':'demo'});return 'Test data mode saved. Close and reopen the dashboard.';}
+  }
+  async function menu(){
+    const a=alert();a.title='Graham’s Day Planner · Updates';a.message=channel.toUpperCase()+' · '+(state.active?state.active.version:'Not installed')+'\n'+status+'\nChanges take effect on the next launch.';
+    const actions=updateInfo().actions;
+    for(const x of actions)a.addAction(x.label);a.addCancelAction('Close');const pick=await a.presentSheet(),choice=actions[pick];
+    return choice?await updateAction(choice.id):'Update settings closed.';
   }
   async function run(input){
     if(input==='UPDATE_SETTINGS'){await menu();return;}
@@ -116,12 +123,12 @@ function createUpdater(config,env) {
       const bad=active;active=state.previous;
       save({...state,active,previous:bad,blocked:bad?[...new Set([...state.blocked,bad.sha256])]:state.blocked});status='Recovered previous cached release';
     }
-    const runtime={channel,version:active.version,sha256:active.sha256,status,bookmark:channel==='production'?'WakeWindowShared':'WakeWindowTestShared',mode:channel==='test'?state.testMode:'live',input,updates:menu};
+    const runtime={channel,version:active.version,sha256:active.sha256,status,bookmark:channel==='production'?'WakeWindowShared':'WakeWindowTestShared',mode:channel==='test'?state.testMode:'live',input,updates:menu,updateInfo,updateAction};
     const app=loadModule(file(active));
     if(!app||typeof app.run!=='function')throw Error('The release has no supported entry point. Use UPDATE_SETTINGS to revert.');
     // Never automatically rerun another app after an error: a save may already have happened.
     try{await app.run(runtime);}catch(e){throw Error(e.message+'\nClose and reopen, or use UPDATE_SETTINGS to revert.');}
   }
-  return {run,menu,update,getState:()=>JSON.parse(JSON.stringify(state)),getStatus:()=>status,validate};
+  return {run,menu,update,updateInfo,updateAction,getState:()=>JSON.parse(JSON.stringify(state)),getStatus:()=>status,validate};
 }
 if(typeof module!=='undefined')module.exports={createUpdater,sha256};
