@@ -2,7 +2,7 @@
 
 Do not promote V2 merely because automated checks pass. Confirm on both iPhones:
 
-1. Test installs from GitHub and opens with **2.0.1 · TEST · Demo**.
+1. Test installs from GitHub and opens with **2.0.2 · TEST · Demo**.
 2. Production installs in the existing script name, retains real records, and
    shows **1.1.3 · PRODUCTION**. Existing Huckleberry Shortcut still
    opens the review screen without saving an import before confirmation.

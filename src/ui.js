@@ -14,17 +14,9 @@ function openSheet(title,body){lastFocus=document.activeElement;$('modalTitle').
 function closeSheet(){window.pendingDeletion=null;$('backdrop').classList.remove('open');$('modal').classList.remove('open');document.body.classList.remove('sheet-open');if(lastFocus)lastFocus.focus();}
 document.addEventListener('keydown',e=>{if(e.key==='Escape')closeSheet();});
 function field(label,id,type,value){
-  if(type==='time'){
-    const t=timeParts(value),option=(v,text,selected)=>`<option value="${v}"${selected?' selected':''}>${text}</option>`;
-    const options=(values,chosen)=>values.map(v=>option(v,v,String(v)===chosen)).join('');
-    const part=(suffix,aria,body)=>`<div class="time-part"><select id="${id}${suffix}" aria-label="${esc(label+' '+aria)}" onchange="syncTime('${id}')">${body}</select></div>`;
-    return `<div class="field"><label for="${id}Hour">${esc(label)}</label><input id="${id}" type="hidden" value="${esc(value)}"><div class="time-entry">${part('Hour','hour',option('','Hour',!t.hour)+options(Array.from({length:12},(_,i)=>String(i+1)),t.hour))}${part('Minute','minute',option('','Min',!t.minute)+options(Array.from({length:60},(_,i)=>String(i).padStart(2,'0')),t.minute))}${part('Period','AM or PM',options(['AM','PM'],t.period))}</div></div>`;
-  }
-  return `<div class="field"><label for="${id}">${esc(label)}</label><input id="${id}" type="${type}" value="${esc(value)}"></div>`;
+  return `<div class="field"><label for="${id}">${esc(label)}</label><input id="${id}" type="${type}"${type==='time'?' step="60"':''} value="${esc(value)}"></div>`;
 }
-function timeParts(value){const m=/^(\d{2}):(\d{2})$/.exec(String(value||''));if(!m)return {hour:'',minute:'',period:'AM'};const h=Number(m[1]);return {hour:String(h%12||12),minute:m[2],period:h>=12?'PM':'AM'};}
-function syncTime(id){const h=$(id+'Hour').value,m=$(id+'Minute').value,p=$(id+'Period').value;$(id).value=h&&m?String(Number(h)%12+(p==='PM'?12:0)).padStart(2,'0')+':'+m:'';if(typeof $(id).onchange==='function')$(id).onchange();}
-function setTime(id,value){$(id).value=value;const t=timeParts(value);$(id+'Hour').value=t.hour;$(id+'Minute').value=t.minute;$(id+'Period').value=t.period;}
+function setTime(id,value){$(id).value=value;}
 function napDateNote(date){const today=WW.parts(clock(),S.settings.timezone).date;return date===today?'Today':new Intl.DateTimeFormat('en-US',{timeZone:S.settings.timezone,month:'short',day:'numeric',year:'numeric'}).format(new Date(WW.wall(date,'12:00',S.settings.timezone)));}
 function saveButtons(handler,label='Save'){return `<div class="sheet-actions"><button onclick="closeSheet()">Cancel</button><button class="save" onclick="${handler}">${label}</button></div>`;}
 async function refresh(){await act('load',{date:S.date},false);}

@@ -34,7 +34,7 @@ function render(){
   $('napTotal').textContent=`${completed.length} completed · ${dur(total)}`;
   const attention=['blocked','adjust','overdue','active-overdue','error'].includes(p.status)&&!historical;
   $('guidance').hidden=!attention;$('guidanceTitle').textContent=p.status==='active-overdue'?'Update expected wake':p.status==='blocked'?'Plan needs an adjustment':p.status==='adjust'?'Bedtime outlook':'Planning status';$('guidanceText').textContent=p.message||'';
-  const release=S.release?`${S.release.version} · ${S.release.channel.toUpperCase()} · `:'2.0.1 · Manual · ';
+  const release=S.release?`${S.release.version} · ${S.release.channel.toUpperCase()} · `:'2.0.2 · Manual · ';
   $('saveState').textContent=release+(S.mode==='demo'?'Demo only · no shared writes':`${S.release&&S.release.channel==='test'?'Test folder · ':''}Shared files read on this phone at ${fmt(S.checkedAt)}.${S.lastSavedAt?' Last local save '+fmt(S.lastSavedAt)+'.':''} Refresh the other phone to read shared changes.`);
   $('updatesButton').hidden=!(S.release&&S.release.updates);
   $('operationState').textContent=lastOperation;

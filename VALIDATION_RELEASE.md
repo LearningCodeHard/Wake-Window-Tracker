@@ -67,3 +67,19 @@ plain label `1.1.3` at sequence 2, avoiding the suffix. The exact app hash/path
 and byte count are unchanged. Existing launchers receive this change on their
 next launch; no launcher reinstall or sleep-data migration is needed. Phone
 resolution still requires the user's result.
+
+## TEST 2.0.2 — native time picker
+
+At the user's request, every clock-time field now uses one native HTML time
+input with minute precision: morning wake, nap start/end, expected wake, awake
+appointment start/end, suggested-nap pin start, daily bedtime and default
+bedtime. The split hour/minute/AM–PM selectors and synchronization code were
+removed. Native values remain HH:mm; expected-wake recalculation, imported
+exact minutes, midnight/noon handling, retained drafts and automatic record
+dates pass regression checks. All 193 automated checks pass.
+
+Time input sizing is scoped to the field host and WebKit time-value element,
+with a single-column sheet and bounded widths. Browser-check selectors now
+use the native inputs. No browser executable is available here; actual iOS
+picker presentation/width still needs phone acceptance. The TEST channel
+selects 2.0.2 at sequence 2. Production remains on 1.1.3 at sequence 2.

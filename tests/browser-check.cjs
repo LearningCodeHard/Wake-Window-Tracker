@@ -31,10 +31,10 @@ const {chromium}=require('playwright');
  }
  await page.setViewportSize({width:390,height:1000});
  await page.evaluate(()=>{awakeSheet('a');});
- assert.equal(await page.locator('#awakeStartHour').inputValue(),'2');assert.equal(await page.locator('#awakeEndMinute').inputValue(),'30');
- await page.locator('#awakeEndMinute').selectOption('45');await page.locator('#modal button.save').click();
+ assert.equal(await page.locator('#awakeStart').inputValue(),'14:00');assert.equal(await page.locator('#awakeEnd').inputValue(),'14:30');
+ await page.locator('#awakeEnd').fill('14:45');await page.locator('#modal button.save').click();
  const command=await page.evaluate(()=>window.__queue.shift());assert.equal(command.action,'awakePeriod');assert.equal(command.data.end,'14:45');assert.equal(command.data.base,'plan-r1');
- await page.evaluate(id=>receive({id,error:'Simulated stale plan'}),command.id);assert.match(await page.locator('#modalError').textContent(),/stale/);assert.equal(await page.locator('#awakeEndMinute').inputValue(),'45');await page.evaluate(()=>closeSheet());
+ await page.evaluate(id=>receive({id,error:'Simulated stale plan'}),command.id);assert.match(await page.locator('#modalError').textContent(),/stale/);assert.equal(await page.locator('#awakeEnd').inputValue(),'14:45');await page.evaluate(()=>closeSheet());
  await page.evaluate(()=>{S.day.planning.pins[0].start=WW.wall(S.date,'17:00',S.settings.timezone);render();});
  assert.equal(await page.locator('#guidance').isVisible(),true);assert.match(await page.locator('#guidanceText').textContent(),/No schedule/);assert.equal(await page.locator('#timeline').textContent().then(t=>t.includes('Suggested nap')),false);
  await page.evaluate(()=>{S.day.planning.pins=[];S.day.naps[1].end=WW.wall(S.date,'13:20',S.settings.timezone);delete S.day.naps[1].expectedEnd;S.now=Date.parse(WW.wall(S.date,'13:30',S.settings.timezone));render();});
