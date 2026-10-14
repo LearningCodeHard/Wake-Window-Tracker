@@ -60,7 +60,7 @@ if __name__=='__main__':
     p=argparse.ArgumentParser();p.add_argument('action',choices=['bootstrap','candidate','promote','verify']);p.add_argument('--sequence',type=int);p.add_argument('--accepted-sha256');a=p.parse_args()
     if a.action=='bootstrap':
         if (BASE/'channels/production.json').exists():raise SystemExit('Already bootstrapped; use candidate or promote.')
-        write_json(BASE/'channels/production.json',package(legacy_module(),'1.1.3+launcher.1','production',1));candidate(1)
+        write_json(BASE/'channels/production.json',package(legacy_module(),'1.1.3','production',1));candidate(1)
     elif a.action=='candidate':
         if not a.sequence or a.sequence<1:raise SystemExit('Provide a positive --sequence.')
         current=BASE/'channels/test.json'

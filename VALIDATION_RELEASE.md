@@ -56,3 +56,14 @@ Launcher 1.0.1 replaces the generic validation error with the failing field and
 received value, and includes its configured channel/repository in native errors.
 Replace PROD launcher code to collect the exact failure if it persists.
 No app artifacts or release pointers were changed by this diagnostic patch.
+
+## Production version-label simplification — October 14
+
+The user's launcher 1.0.1 report identifies the version field and transcribes
+its received value as `1.1.3f g.1`, which contains a space. The live GitHub and
+anonymous raw manifests both still show the valid `1.1.3+launcher.1` label, so
+the reason for the discrepancy remains unconfirmed. Production now uses the
+plain label `1.1.3` at sequence 2, avoiding the suffix. The exact app hash/path
+and byte count are unchanged. Existing launchers receive this change on their
+next launch; no launcher reinstall or sleep-data migration is needed. Phone
+resolution still requires the user's result.

@@ -36,7 +36,7 @@ Open Huckleberry → Get on-screen Text → Combine Text (New Lines) → Scripta
 Run Script. Select your production script and retain the Combined Text parameter and
 **Run in App: ON**. The launcher forwards the parameter unchanged.
 
-Run production. Confirm **1.1.3+launcher.1 · PRODUCTION** and your actual records.
+Run production. Confirm **1.1.3 · PRODUCTION** and your actual records.
 The production app initially retains V1 functionality; V2 waits for acceptance.
 Run Test again and confirm it still has demo records, not family records.
 

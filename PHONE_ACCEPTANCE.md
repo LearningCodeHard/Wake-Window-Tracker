@@ -4,7 +4,7 @@ Do not promote V2 merely because automated checks pass. Confirm on both iPhones:
 
 1. Test installs from GitHub and opens with **2.0.1 · TEST · Demo**.
 2. Production installs in the existing script name, retains real records, and
-   shows **1.1.3+launcher.1 · PRODUCTION**. Existing Huckleberry Shortcut still
+   shows **1.1.3 · PRODUCTION**. Existing Huckleberry Shortcut still
    opens the review screen without saving an import before confirmation.
 3. Close, use airplane mode, reopen both channels: cached dashboards open.
    Offline iCloud availability is a separate check from cached application code.

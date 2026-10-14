@@ -9,7 +9,7 @@ regression fixtures are published here.
 
 | Installed script | Initial app | Channel | Data |
 |---|---|---|---|
-| Existing production script name, e.g. Wake Window V1 | 1.1.3+launcher.1 | production | Existing WakeWindowShared bookmark |
+| Existing production script name, e.g. Wake Window V1 | 1.1.3 | production | Existing WakeWindowShared bookmark |
 | Wake Window Test | 2.0.1 | test | Demo by default; optional WakeWindowTestShared |
 
 V1 functionality was accepted in the previous project chat. The new launcher
@@ -46,7 +46,7 @@ After the user accepts the candidate on both phones, record the **exact SHA-256*
 shown by `channels/test.json`. Promote that artifact:
 
 ```sh
-python3 tools/release.py promote --sequence 2 --accepted-sha256 EXACT_TESTED_SHA256
+python3 tools/release.py promote --sequence 3 --accepted-sha256 EXACT_TESTED_SHA256
 python3 tools/release.py verify
 ```
 
