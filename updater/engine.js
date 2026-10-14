@@ -33,7 +33,17 @@ function createUpdater(config,env) {
   const file=r=>fm.joinPath(cache,r.sha256+'.js');
   function valid(r){try{return !!r&&fm.fileExists(file(r))&&sha256(bytes(fm.readString(file(r))))===r.sha256;}catch(_){return false;}}
   function validate(m){
-    if(!m||m.schema!==1||m.channel!==channel||m.dataSchema!==1||m.minLauncher!==1||!Number.isSafeInteger(m.sequence)||m.sequence<1||typeof m.version!=='string'||!/^[0-9A-Za-z.+-]{1,50}$/.test(m.version)||!Number.isSafeInteger(m.bytes)||m.bytes<1||m.bytes>500000||!/^[a-f0-9]{64}$/.test(m.sha256)||m.path!=='releases/'+m.sha256+'.js')throw Error('Release manifest is incompatible or invalid.');
+    const fail=(field,expected,actual)=>{throw Error('Release manifest: '+field+' must be '+expected+'. Received '+JSON.stringify(actual)+'.');};
+    if(!m||typeof m!=='object'||Array.isArray(m))fail('document','a JSON object',m);
+    if(m.schema!==1)fail('schema','1',m.schema);
+    if(m.channel!==channel)fail('channel',JSON.stringify(channel),m.channel);
+    if(m.dataSchema!==1)fail('dataSchema','1',m.dataSchema);
+    if(m.minLauncher!==1)fail('minLauncher','1',m.minLauncher);
+    if(!Number.isSafeInteger(m.sequence)||m.sequence<1)fail('sequence','a positive integer',m.sequence);
+    if(typeof m.version!=='string'||!/^[0-9A-Za-z.+-]{1,50}$/.test(m.version))fail('version','1–50 ASCII letters, digits, dots, plus signs or hyphens',m.version);
+    if(!Number.isSafeInteger(m.bytes)||m.bytes<1||m.bytes>500000)fail('bytes','an integer from 1 to 500000',m.bytes);
+    if(typeof m.sha256!=='string'||!/^[a-f0-9]{64}$/.test(m.sha256))fail('sha256','64 lowercase hexadecimal characters',m.sha256);
+    if(m.path!=='releases/'+m.sha256+'.js')fail('path',JSON.stringify('releases/'+m.sha256+'.js'),m.path);
     return m;
   }
   async function githubFile(path,timeout){

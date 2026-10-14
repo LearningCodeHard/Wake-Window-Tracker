@@ -13,7 +13,7 @@ Repository location and download access are part of the installed launcher.
 
 ## 2. Install Test first
 
-Create a Scriptable script named **Wake Window Test**. Replace all of its code
+Create a Scriptable script named **Wake_Window_TEST**. Replace all of its code
 with [launchers/Wake_Window_Test.txt](launchers/Wake_Window_Test.txt).
 Run it in Scriptable. There is no token prompt. The dashboard should show
 **2.0.1 · TEST** and the **DEMO** banner. Demo edits never reach shared files.
@@ -26,12 +26,14 @@ import or two-phone sharing tests, use the separate test folder below.
 Keep a copy of the current working production script as **Wake Window Backup**.
 In the existing production script, replace all code with
 [launchers/Wake_Window.txt](launchers/Wake_Window.txt).
-**Retain its current name**, even if it is `Wake Window V1`.
+**Retain your chosen name**, such as `Wake_Window_PROD`.
+If your Shortcut previously targeted a differently named script, select
+**Wake_Window_PROD** in its Run Script action.
 Keep its existing **WakeWindowShared** bookmark and family folder.
 
-The existing Huckleberry Shortcut remains:
+The Huckleberry Shortcut sequence remains:
 Open Huckleberry → Get on-screen Text → Combine Text (New Lines) → Scriptable
-Run Script. Retain the current script selection, Combined Text parameter, and
+Run Script. Select your production script and retain the Combined Text parameter and
 **Run in App: ON**. The launcher forwards the parameter unchanged.
 
 Run production. Confirm **1.1.3+launcher.1 · PRODUCTION** and your actual records.
@@ -66,3 +68,11 @@ loading the dashboard. It also works while offline.
 
 For a new phone or cleared Scriptable storage, there is no cache until first
 download. Keep the Backup script until both phones pass the acceptance checks.
+
+## Manifest error diagnostics
+
+Launcher **1.0.1** reports the exact manifest field/value that fails validation.
+If PROD shows a manifest error, replace its complete launcher code from the
+production link above; keep the script name and bookmark. Copy the full new
+error message, including the launcher/channel/repository lines. TEST can keep
+its current working launcher while PROD is diagnosed.
