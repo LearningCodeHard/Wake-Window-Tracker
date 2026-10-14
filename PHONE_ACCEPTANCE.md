@@ -1,10 +1,10 @@
-# Phone acceptance before V2 production promotion
+# Phone acceptance and regression checklist
 
 Do not promote V2 merely because automated checks pass. Confirm on both iPhones:
 
 1. Test installs from GitHub and opens with **Wake Window TEST** in the header and **2.0.3 · TEST · Demo only** in the footer.
 2. Production installs in the existing script name, retains real records, and
-   shows **1.1.3 · PRODUCTION**. Existing Huckleberry Shortcut still
+   shows **2.0.3 · PRODUCTION**. Existing Huckleberry Shortcut still
    opens the review screen without saving an import before confirmation.
 3. Close, use airplane mode, reopen both channels: cached dashboards open.
    Offline iCloud availability is a separate check from cached application code.
@@ -26,5 +26,7 @@ Record accepted version **and SHA-256**, phones tested, and any accepted
 limitations. Then promote those exact candidate bytes to production. Both
 phones receive the production pointer independently on their next launch.
 
-Phone acceptance is pending. No live sleep records were inspected or changed
-during this implementation.
+The user authorized V2.0.3 production promotion on October 14. This checklist
+remains available for regression checks; individual unreported outcomes are not
+assumed complete. See RELEASE_ACCEPTANCE.md for the evidence and accepted hash.
+No live sleep records were inspected or changed during this implementation.
