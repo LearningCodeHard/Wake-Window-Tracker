@@ -68,7 +68,52 @@ test('appointment planner preserves chronological order and all limits across a 
  for(const begin of ['14:00','14:30','15:00','15:30','16:00']){
   const day=d();const end=W.parts(ms(begin)+30*60000,tz).time;day.planning.awake=[awake(begin,end)];const p=W.plan(day,s,ms('12:46'));
   if(p.status==='blocked')continue;let cursor=p.anchor;
-  for(const e of p.events){assert.equal(e.start,cursor);cursor=e.end;const r=e.kind==='nap'?s.nap:e.kind==='final'?s.final:s.later;assert.ok(e.minutes>=r.min&&e.minutes<=r.max);if(e.kind==='nap')assert.ok(e.end<=ms(begin)||e.start>=ms(end));}
+  for(const e of p.events){assert.equal(e.start,cursor);cursor=e.end;const r=e.kind==='nap'?W.napProfiles(s)[e.profile]:e.kind==='final'?s.final:s.later;assert.ok(e.minutes>=r.min&&e.minutes<=r.max);if(e.kind==='nap')assert.ok(e.end<=ms(begin)||e.start>=ms(end));}
   assert.equal(cursor,p.bedtime);assert.equal(JSON.stringify(day.naps),JSON.stringify(d().naps));
  }
+});
+
+test('the 7 AM rule uses the second range for the first wake only, in household time',()=>{
+ const settings={...s,napTarget:2,napMax:2,first:{min:70,ideal:70,max:70},second:{min:125,ideal:125,max:125}};
+ for(const [wake,first] of [['06:59',70],['07:00',125]]){
+  const day={date,morning:at(wake),naps:[]};
+  const p=W.plan(day,settings,ms('07:01'));
+  assert.deepEqual(p.events.filter(e=>e.kind==='awake').map(e=>e.minutes),[first,125]);
+ }
+});
+test('target is a preference and maximum includes recorded and active naps',()=>{
+ const day=d(),p=W.plan(day,{...s,napTarget:1,napMax:2},ms('12:46'));
+ assert.equal(p.count,0);assert.equal(p.totalNaps,2);assert.ok(p.bedtime<ms('20:00'));
+ assert.equal(day.naps.length,2);
+ const sample={date,morning:at('07:00'),naps:[]};
+ const tied={...s,napTarget:2,napMax:3,later:{min:75,ideal:100,max:150},long:{min:120,ideal:150,max:200}};
+ const options=W.alternatives(sample,tied,ms('07:00'),true);
+ assert.equal(options[0].totalNaps,2);assert.equal(options[0].bedtime,ms('20:00'));
+ assert.ok(options.some(o=>o.totalNaps===3));assert.ok(options.length<=3);
+});
+test('short and long overrides restrict the individual nap, including profile-only pins',()=>{
+ const day={date,morning:at('07:00'),naps:[],planning:{awake:[],pins:[]}};
+ const settings={...s,napTarget:2,napMax:2,short:{min:30,ideal:35,max:40},long:{min:100,ideal:105,max:110}};
+ day.planning.pins=[{id:'p1',ordinal:1,start:null,minutes:null,profile:'short',anchors:[]},{id:'p2',ordinal:2,start:null,minutes:105,profile:'long',anchors:[]}];
+ const p=W.plan(day,settings,ms('07:00')),naps=p.events.filter(e=>e.kind==='nap');
+ assert.deepEqual(naps.map(n=>n.profile),['short','long']);
+ assert.ok(naps[0].minutes>=30&&naps[0].minutes<=40);assert.equal(naps[1].minutes,105);
+ day.planning.pins[1].minutes=111;
+ assert.equal(W.plan(day,settings,ms('07:00')).status,'blocked');
+ assert.throws(()=>W.validateSettings({...settings,napTarget:3}),/maximum/);
+});
+test('passes target time when a later bedtime is feasible and blocks impossible awake limits',()=>{
+ const day={date,morning:at('19:00'),naps:[]};
+ const settings={...s,napTarget:0,napMax:0};
+ const p=W.plan(day,settings,ms('20:10'));
+ assert.equal(p.bedtime,ms('21:00'));assert.equal(p.deviation,60);
+ assert.equal(W.plan(day,settings,ms('22:01')).reason,'wake-limit');
+});
+test('daylight-saving changes use elapsed minutes and keep the schedule inside the household day',()=>{
+ const dst='2026-03-08',morning=W.wall(dst,'01:30',tz),settings={...s,napTarget:1,napMax:1,first:{min:75,ideal:75,max:75}};
+ const p=W.plan({date:dst,morning,naps:[]},settings,Date.parse(morning));
+ const nap=p.events.find(e=>e.kind==='nap');
+ assert.ok(nap);assert.equal(W.parts(nap.start,tz).time,'03:45');
+ assert.equal((nap.start-Date.parse(morning))/60000,p.events[0].minutes);
+ assert.equal(W.parts(p.bedtime,tz).date,dst);
 });

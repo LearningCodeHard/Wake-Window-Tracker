@@ -23,7 +23,7 @@ async function refresh(){await act('load',{date:S.date},false);}
 async function changeDay(date){await act('load',{date},false);}
 function morningSheet(){openSheet('Morning Wake',`<p>Actual wake time for ${esc(S.date)}.</p><div class="form-grid">${field('Wake time','morning','time',S.day.morning?WW.parts(S.day.morning,S.settings.timezone).time:'')}</div>${saveButtons('saveMorning()')}${S.day.morning?'<div class="toolbar"><button class="small-btn destructive" onclick="removeMorning()">Remove Morning Wake</button></div>':''}`);}
 async function saveMorning(){await act('morning',{date:S.date,time:$('morning').value,base:S.revisions.morning});}
-function removeMorning(){confirmRemoval('Remove morning wake?','Remove the recorded morning wake for this day? The remaining plan will recalculate.','morning',{date:S.date,time:null,base:S.revisions.morning},'Remove Wake');}
+function removeMorning(){confirmRemoval('Remove morning wake?','Remove the recorded morning wake for this day? Review the schedule after saving.','morning',{date:S.date,time:null,base:S.revisions.morning},'Remove Wake');}
 function napSheet(index=null,imported=null){
   const n=index!==null?S.day.naps[index]:imported,current=WW.parts(clock(),S.settings.timezone);const start=n?WW.parts(n.start,S.settings.timezone):{date:current.date,time:''},end=n&&n.end?WW.parts(n.end,S.settings.timezone):{date:start.date,time:start.date===current.date?current.time:''};window.napEntryDate=start.date;
   const matching=imported?S.day.naps.find(x=>x.end===null&&x.start===imported.start):null;
@@ -32,7 +32,7 @@ function napSheet(index=null,imported=null){
   openSheet(imported?'Review imported nap':n&&n.end===null?'Record actual wake':index===null?'Log Completed Nap':'Edit recorded nap',`<p>${esc(napDateNote(window.napEntryDate))} · ${esc(hint||'Enter actual sleep times. Planned ranges do not limit recorded naps.')}</p><div class="form-grid">${field('Start','napStart','time',start.time)}${field('Actual end','napEnd','time',end.time)}</div>${saveButtons('saveNap()',n&&n.end===null?'Finish Nap':'Save Nap')}${window.editingNap?'<div class="toolbar"><button class="small-btn destructive" onclick="deleteNap()">Delete This Nap</button></div>':''}`);
 }
 async function saveNap(){const e=window.editingNap;await act('nap',{date:window.napEntryDate,start:$('napStart').value,end:$('napEnd').value,entity:e?e.entity:null,base:e?e.base:null,imported:!!window.importedNap});}
-function deleteNap(){const n=window.editingNap;if(!n||!n.entity){toast('This nap has not been saved. Close the sheet to discard it.');return;}confirmRemoval('Delete nap?','Remove this nap from the day? The remaining plan will recalculate.','deleteNap',{date:window.napEntryDate,...n},'Delete Nap');}
+function deleteNap(){const n=window.editingNap;if(!n||!n.entity){toast('This nap has not been saved. Close the sheet to discard it.');return;}confirmRemoval('Delete nap?','Remove this nap from the day? Review the schedule after saving.','deleteNap',{date:window.napEntryDate,...n},'Delete Nap');}
 function confirmRemoval(title,message,action,data,label){openSheet(title,`<p>${esc(message)}</p><div class="sheet-actions"><button onclick="closeSheet()">Keep Entry</button><button class="delete-save" onclick="confirmDeletion()">${esc(label)}</button></div>`);window.pendingDeletion={action,data};}
 async function confirmDeletion(){const d=window.pendingDeletion;if(!d)return;const r=await act(d.action,d.data);if(r)window.pendingDeletion=null;}
 function activeIndex(){return S.day.naps.findIndex(n=>n.end===null);}
@@ -56,14 +56,28 @@ function finishNapSheet(index){napSheet(index);}
 async function endNapNow(index){const n=S.day.naps[index];if(!n||n.end!==null){toast('Refresh to view the current nap.');return;}await act('nap',{date:S.date,start:WW.parts(n.start,S.settings.timezone).time,end:WW.parts(clock(),S.settings.timezone).time,entity:n.entity,base:n.revision});}
 function bedtimeSheet(){openSheet('Bedtime today',`<p>Change the target for ${esc(S.date)}. The planner will choose the remaining nap count and timings.</p><div class="form-grid">${field('Target bedtime','todayBed','time',S.day.bedtime||S.settings.bedtime)}</div>${saveButtons('saveBedtime()')}`);}
 async function saveBedtime(){await act('bedtime',{date:S.date,time:$('todayBed').value,base:S.revisions.bedtime});}
-function settingsSheet(){let content='<h3>Appointments and Nap Pins</h3>'+planningControls()+'<h3>Shared Defaults</h3><p>Shared defaults for both parents. Minimum and maximum are planning limits; preferred is the duration the planner aims for.</p><div class="form-grid">'+field('Default bedtime','defaultBed','time',S.settings.bedtime)+field('Household timezone','timezone','text',S.settings.timezone)+'</div>';const labels={nap:'Nap duration',first:'First wake window',second:'Second wake window',later:'Later wake windows',final:'Final wake window'};for(const k of Object.keys(labels)){content+=`<div class="setting-group"><h3>${labels[k]} · minutes</h3><div class="triple">${['min','ideal','max'].map((x,i)=>field(['Minimum','Preferred','Maximum'][i],k+'_'+x,'number',S.settings[k][x])).join('')}</div></div>`;}openSheet('Settings',content+saveButtons('saveSettings()'));}
-async function saveSettings(){let settings={timezone:$('timezone').value.trim(),bedtime:$('defaultBed').value};for(const k of ['nap','first','second','later','final']){settings[k]={};for(const x of ['min','ideal','max'])settings[k][x]=Number($(k+'_'+x).value);}await act('settings',{settings,base:S.revisions.settings});}
+const durationLabels={short:'Short nap',nap:'Standard nap',long:'Long nap',first:'First wake window',second:'Second wake window',later:'Later wake windows',final:'Final wake window'};
+function settingsSheet(){
+  window.settingsBase=S.revisions.settings;
+  const counts=WW.napCounts(S.settings),profiles=WW.napProfiles(S.settings);
+  let content='<h3>Shared Defaults</h3><div class="form-grid">'+field('Default bedtime','defaultBed','time',S.settings.bedtime)+field('Household timezone','timezone','text',S.settings.timezone)+'</div>';
+  content+='<h3>Daily naps</h3><div class="form-grid">'+field('Target naps','napTarget','number',counts.target)+field('Maximum naps','napMax','number',counts.max)+'</div><p>The maximum includes recorded and active naps.</p>';
+  for(const [key,label] of Object.entries(durationLabels)){
+    const range=profiles[key]||S.settings[key];
+    content+=`<div class="setting-group"><h3>${label} · minutes</h3><div class="triple">${['min','ideal','max'].map((x,i)=>field(['Minimum','Preferred','Maximum'][i],key+'_'+x,'number',range[x])).join('')}</div></div>`;
+  }
+  content+='<p>At 7:00 AM or later, the first wake window uses the second window’s range. Nap changes over 10 minutes prompt a new proposal for approval.</p>';
+  openSheet('Settings',content+saveButtons('saveSettings()')+'<h3>Appointments and Nap Pins</h3>'+planningControls());
+}
+async function saveSettings(){
+  const settings={timezone:$('timezone').value.trim(),bedtime:$('defaultBed').value};
+  for(const key of ['napTarget','napMax'])settings[key]=$(key).value===''?null:Number($(key).value);
+  for(const key of Object.keys(durationLabels))settings[key]=Object.fromEntries(['min','ideal','max'].map(x=>[x,Number($(key+'_'+x).value)]));
+  await act('settings',{settings,base:window.settingsBase});
+}
 function theme(){const t=document.documentElement.dataset.theme==='dark'?'light':'dark';document.documentElement.dataset.theme=t;try{localStorage.setItem('ww_appearance',t);}catch{}}
 function probeSheet(){openSheet('Two-Phone Check',`<p>Use a different label on each phone. Test records do not affect naps.</p><div class="form-grid">${field('This phone label','probeLabel','text','Phone A')}</div><div class="sheet-actions"><button onclick="probeRefresh()">Read Test Records</button><button class="save" onclick="probeWrite()">Write Test Record</button></div><div id="probeResults">${probeRows()}</div><p>Both labels must appear on both phones after reading again. A local save alone does not prove sharing.</p>`);}
 function probeRows(){return (S.probes||[]).map(p=>`<div class="probe-row"><strong>${esc(p.label)}</strong><br>${esc(p.at)}<br>Code: ${esc(p.code)}</div>`).join('')||'<p>No test records read yet.</p>';}
 async function probeRefresh(){await act('load',{date:S.date},false);$('probeResults').innerHTML=probeRows();}
 async function probeWrite(){await act('probe',{label:$('probeLabel').value},false);$('probeResults').innerHTML=probeRows();}
 async function advanceDemo(){await act('advance',{},false);}
-try{document.documentElement.dataset.theme=localStorage.getItem('ww_appearance')||'dark';}catch{}
-render();setInterval(render,60000);
-if(S.imported){if(S.imported.error){setTimeout(()=>{napSheet();$('modalError').textContent=S.imported.error;},200);}else setTimeout(()=>S.imported.kind==='active'?activeNapSheet(null,S.imported):napSheet(null,S.imported),200);}

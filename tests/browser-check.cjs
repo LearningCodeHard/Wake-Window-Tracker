@@ -19,7 +19,7 @@ const {chromium}=require('playwright');
   }
   return {text:result,overflow:document.documentElement.scrollWidth>innerWidth,fields:[...document.querySelectorAll('.sheet input:not([type=hidden]),.sheet select')].filter(el=>el.getClientRects().length).map(el=>({id:el.id,left:el.getBoundingClientRect().left,right:el.getBoundingClientRect().right}))};
  }
- for(const width of [320,390,736])for(const theme of ['light','dark']){
+ for(const width of [320,375,390,736])for(const theme of ['light','dark']){
   await page.setViewportSize({width,height:1000});await page.evaluate(t=>document.documentElement.dataset.theme=t,theme);
   const r=await page.evaluate(inspect);assert.equal(r.overflow,false);for(const t of r.text){assert.ok(t.ratio>=4.5,JSON.stringify({width,theme,...t}));if(theme==='light')assert.notEqual(t.color,'rgb(255, 255, 255)');}
   results.push({width,theme,minContrast:Math.min(...r.text.map(x=>x.ratio)).toFixed(2)});
@@ -27,6 +27,24 @@ const {chromium}=require('playwright');
    await page.evaluate(code=>eval(code),open);const sheet=await page.evaluate(inspect);assert.equal(sheet.overflow,false);for(const f of sheet.fields){assert.ok(f.left>=0&&f.right<=width,JSON.stringify({width,open,...f}));}
    await page.evaluate(()=>closeSheet());
   }
+  await page.evaluate(()=>{
+   const at=t=>WW.wall(S.date,t,S.settings.timezone);
+   const day={date:S.date,morning:at('07:00'),naps:[]};
+   const settings={...S.settings,napTarget:2,napMax:3,later:{min:75,ideal:100,max:150},long:{min:120,ideal:150,max:200}};
+   showOptions(WW.alternatives(day,settings,Date.parse(at('07:00')),true),Date.parse(at('07:00')),true);
+  });
+  const options=await page.locator('.option-grid').evaluateAll(grids=>grids.map(grid=>{
+   const [naps,tradeoffs]=grid.children,rect=tradeoffs.getBoundingClientRect();
+   return {naps:naps.querySelectorAll('li').length,x:rect.left,top:rect.top-grid.getBoundingClientRect().top,fit:grid.scrollWidth<=grid.clientWidth};
+  }));
+  assert.ok(options.some(x=>x.naps===2)&&options.some(x=>x.naps===3));
+  for(const option of options){
+   assert.equal(option.x,options[0].x);assert.equal(option.top,0);assert.equal(option.fit,true);
+  }
+  const alternatives=await page.evaluate(inspect);
+  assert.equal(alternatives.overflow,false);
+  for(const t of alternatives.text)assert.ok(t.ratio>=4.5,JSON.stringify({width,theme,...t}));
+  await page.evaluate(()=>closeSheet());
   if(width===390)await page.screenshot({path:path.join(__dirname,'v2-'+theme+'.png'),fullPage:true});
  }
  await page.setViewportSize({width:390,height:1000});

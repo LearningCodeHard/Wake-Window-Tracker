@@ -11,7 +11,7 @@ async function runWakeWindow(runtime={}) {
   const now=()=>demo?demoNow:Date.now();
   const safeJSON=x=>JSON.stringify(x).replace(/</g,'\\u003c').replace(/\u2028/g,'\\u2028').replace(/\u2029/g,'\\u2029');
   const device=()=>{const key='ww_device_v1';if(!Keychain.contains(key))Keychain.set(key,uuid());return Keychain.get(key);};
-  function record(entity,value,base,deleted=false){return {schema:1,id:uuid(),entity,value,base:base||null,deleted,at:new Date().toISOString(),device:demo?'demo':device()};}
+  function record(entity,value,base,deleted=false){return {schema:1,id:uuid(),entity,value,base:base||null,deleted,at:new Date(now()).toISOString(),device:demo?'demo':device()};}
   const path=(a,b)=>fm.joinPath(a,b);
   function dir(name){const p=path(root,name);if(!fm.fileExists(p))fm.createDirectory(p,true);return p;}
   async function readFile(p){await fm.downloadFileFromiCloud(p);return JSON.parse(fm.readString(p));}
@@ -24,7 +24,12 @@ async function runWakeWindow(runtime={}) {
   }
   async function readProbes(){if(demo)return [];const p=dir('checks'),out=[];for(const f of fm.listContents(p).filter(n=>n.endsWith('.json'))){out.push(await readFile(path(p,f)));}return out.sort((a,b)=>b.at.localeCompare(a.at)).slice(0,20);}
   async function load(selectedDate,imported=null){
-    const records=await readRecords(selectedDate),reduced=WW.reduce(records);
+    snapshot=readDay(await readRecords(selectedDate),selectedDate);
+    snapshot.probes=await readProbes();snapshot.imported=imported;
+    date=selectedDate;return snapshot;
+  }
+  function readDay(records,selectedDate){
+    const reduced=WW.reduce(records);
     const get=e=>reduced.latest[e];
     const settings=get('settings')&&!get('settings').deleted?get('settings').value:WW.copy(WW.defaults);WW.validateSettings(settings);
     const morning=get('morning:'+selectedDate),bed=get('bedtime:'+selectedDate),planning=get('planning:'+selectedDate);
@@ -37,17 +42,26 @@ async function runWakeWindow(runtime={}) {
     const naps=Object.entries(reduced.latest).filter(([k,r])=>k.startsWith('nap:'+selectedDate+':')&&!r.deleted).map(([entity,r])=>({...r.value,entity,revision:r.id})).sort((a,b)=>Date.parse(a.start)-Date.parse(b.start));
     // Distinct imports of identical times display once, even after delayed sync.
     const seen=new Set(),unique=naps.filter(n=>{const k=WW.napKey(n.start,n.end);if(seen.has(k))return false;seen.add(k);return true;});
-    snapshot={mode:demo?'demo':'live',release:{version:runtime.version||APP_VERSION,channel:runtime.channel||'manual',status:runtime.status||'',updates:typeof runtime.updates==='function',updateInfo:typeof runtime.updateInfo==='function'?runtime.updateInfo():null},now:now(),date:selectedDate,settings,
-      day:{date:selectedDate,morning:morning&&!morning.deleted?morning.value:null,bedtime:bed&&!bed.deleted?bed.value:null,naps:unique,planning:WW.copy(planningData),planningConflict},planningVersions,
-      revisions:{settings:get('settings')?get('settings').id:null,morning:morning?morning.id:null,bedtime:bed?bed.id:null,planning:planning?planning.id:null},
-      conflicts:reduced.conflicts,checkedAt:Date.now(),lastSavedAt,warnings:[],probes:await readProbes(),imported};
-    if(!get('settings'))snapshot.warnings.push('Using starter settings. Review and save your preferred ranges in Settings.');
-    if(unique.length&&!snapshot.day.morning)snapshot.warnings.push('Morning wake is not logged. The earlier part of the day may be incomplete.');
-    date=selectedDate;return snapshot;
+    const approvalEntity='approval:'+selectedDate;
+    const approvalHeads=WW.approval.approvalHeads(records.filter(r=>r.entity===approvalEntity));
+    const approval=approvalHeads[0];
+    const approvalVersions=approvalHeads.length>1?approvalHeads.map(r=>({id:r.id,at:r.at,value:r.value})):[];
+    const changedAt=Math.max(0,...Object.values(reduced.latest).filter(r=>r.entity!==approvalEntity).map(r=>Date.parse(r.at)));
+    const view={mode:demo?'demo':'live',release:{version:runtime.version||APP_VERSION,channel:runtime.channel||'manual',status:runtime.status||'',updates:typeof runtime.updates==='function',updateInfo:typeof runtime.updateInfo==='function'?runtime.updateInfo():null},now:now(),date:selectedDate,settings,
+      day:{date:selectedDate,morning:morning&&!morning.deleted?morning.value:null,bedtime:bed&&!bed.deleted?bed.value:null,naps:unique,planning:WW.copy(planningData),planningConflict},planningVersions,approvalVersions,approved:approval?.value||null,changedAt,
+      revisions:{settings:get('settings')?get('settings').id:null,morning:morning?morning.id:null,bedtime:bed?bed.id:null,planning:planning?planning.id:null,approval:approval?.id||null},
+      conflicts:reduced.conflicts.filter(e=>e!==approvalEntity).sort(),checkedAt:Date.now(),lastSavedAt,warnings:[]};
+    if(!get('settings'))view.warnings.push('Using starter settings. Review and save your preferred ranges in Settings.');
+    if(unique.length&&!view.day.morning)view.warnings.push('Morning wake is not logged. The earlier part of the day may be incomplete.');
+    return view;
   }
-  async function writeEvent(entity,value,base,selectedDate,deleted=false){
-    const reduced=WW.reduce(await readRecords(selectedDate)),current=reduced.latest[entity];
-    if((current?current.id:null)!==(base||null))throw Error('This entry changed since you opened it. Refresh, review the other edit, and try again.');
+  async function writeEvent(entity,value,base,selectedDate,deleted=false,expectedSignature=null){
+    const records=await readRecords(selectedDate);
+    const approval=expectedSignature!==null;
+    const current=approval?readDay(records,selectedDate):WW.reduce(records).latest[entity];
+    const currentBase=approval?current.revisions.approval:current?.id||null;
+    if(approval&&WW.approval.signature(current)!==expectedSignature)throw Error('The day or an approval changed. Refresh and review the latest schedule.');
+    if(currentBase!==(base||null))throw Error('This entry changed since you opened it. Refresh, review the other edit, and try again.');
     const r=record(entity,value,base,deleted);
     if(demo)demoRecords.push(r);
     else{const folder=dir(entity==='settings'?'settings':'events');const filename=(entity==='settings'?'settings':selectedDate)+'__'+r.id+'.json';const p=path(folder,filename);fm.writeString(p,JSON.stringify(r));const check=await readFile(p);if(check.id!==r.id)throw Error('The local save could not be confirmed. Refresh before retrying.');}
@@ -72,7 +86,29 @@ async function runWakeWindow(runtime={}) {
     }
     const selectedDate=d.date||date;
     const fresh=await load(selectedDate);const s=fresh.settings;
-    if(['awakePeriod','removeAwake','pinNap','releasePin','resetPlanning','resolvePlanning'].includes(action)){
+    if(action==='approvePlan'||action==='resolveApproval'){
+      const signature=WW.approval.signature(fresh),base=fresh.revisions.approval;
+      if(d.signature!==signature)throw Error('The day or an approval changed. Refresh and review the latest schedule.');
+      let value;
+      if(action==='resolveApproval'){
+        const chosen=fresh.approvalVersions.find(v=>v.id===d.version);
+        if(!chosen)throw Error('This conflicting approval is no longer available. Refresh and review again.');
+        value={...chosen.value,resolved:fresh.approvalVersions.map(v=>v.id)};
+      }else{
+        if(fresh.approvalVersions.length||fresh.conflicts.length)throw Error('Review conflicting edits before approving a schedule.');
+        const generatedAt=d.generatedAt,nowTime=now();
+        if(!Number.isSafeInteger(generatedAt)||generatedAt>nowTime||WW.parts(nowTime,s.timezone).date!==selectedDate||WW.parts(generatedAt,s.timezone).date!==selectedDate)
+          throw Error('Generate a new schedule for today before approving.');
+        const options=WW.alternatives(fresh.day,s,generatedAt,d.compare===true),option=options[d.index];
+        if(!option?.bedtime||WW.approval.expired(option,nowTime))
+          throw Error('A transition in this proposal has passed. Recalculate to review an updated schedule.');
+        if(fresh.day.naps.some(n=>n.end===null&&Date.parse(n.expectedEnd)<=nowTime))
+          throw Error('Update the active nap before approving a schedule.');
+        value=WW.approval.saveApproval(fresh,option,generatedAt);
+      }
+      await writeEvent('approval:'+selectedDate,value,base,selectedDate,false,signature);
+      message=action==='resolveApproval'?'Selected approval saved.':'Schedule approved on this phone.';
+    }else if(['awakePeriod','removeAwake','pinNap','releasePin','resetPlanning','resolvePlanning'].includes(action)){
       const planning=WW.copy(fresh.day.planning),base=fresh.revisions.planning;
       if((d.base||null)!==base)throw Error('The day plan changed since you opened it. Refresh and review the other parent’s change.');
       if(action==='awakePeriod'){
@@ -80,18 +116,21 @@ async function runWakeWindow(runtime={}) {
         const index=planning.awake.findIndex(x=>x.id===a.id);
         if(d.id&&index<0)throw Error('This awake period was removed. Refresh before editing.');
         if(index>=0)planning.awake[index]=a;else planning.awake.push(a);
-        message='Awake period saved on this phone. The remaining plan recalculated.';
+        message='Awake period saved on this phone. Review the schedule for changes.';
       }else if(action==='removeAwake'){
         if(!planning.awake.some(x=>x.id===d.id))throw Error('Select a saved awake period.');planning.awake=planning.awake.filter(x=>x.id!==d.id);message='Awake period removed.';
       }else if(action==='pinNap'){
         const actual=WW.validateDay(fresh.day,s,now()),ordinal=Number(d.ordinal);
-        if(!Number.isInteger(ordinal)||ordinal<=actual.length||ordinal>actual.length+6)throw Error('Pin one of the next six suggested naps, not an actual record.');
+        if(!Number.isInteger(ordinal)||ordinal<=actual.length||ordinal>WW.napCounts(s).max)throw Error('Pin a future nap within the daily maximum. An actual nap cannot be pinned.');
         const start=d.start?WW.wall(selectedDate,d.start,s.timezone):null,minutes=d.minutes===null||d.minutes===''?null:Number(d.minutes);
         if(start!==null&&Date.parse(start)<now())throw Error('A new pinned start must be now or in the future.');
-        if(minutes!==null&&(!Number.isInteger(minutes)||minutes<s.nap.min||minutes>s.nap.max))throw Error('Pinned duration must stay within the configured nap minimum and maximum.');
+        const profiles=WW.napProfiles(s),profile=d.profile||null;
+        if(profile&&!Object.prototype.hasOwnProperty.call(profiles,profile))throw Error('Choose a valid nap profile.');
+        const range=profiles[profile||'standard'];
+        if(minutes!==null&&(!Number.isInteger(minutes)||minutes<range.min||minutes>range.max))throw Error('Pinned duration must stay within the selected nap profile’s minimum and maximum.');
         const index=planning.pins.findIndex(x=>x.ordinal===ordinal);
-        const p={id:index>=0?planning.pins[index].id:uuid(),ordinal,start,minutes,anchors:actual.map(WW.napIdentity)};
-        if(index>=0)planning.pins[index]=p;else planning.pins.push(p);message='Nap pin saved on this phone. Review the recalculated plan.';
+        const p={id:index>=0?planning.pins[index].id:uuid(),ordinal,start,minutes,...(profile?{profile}:{}),anchors:actual.map(WW.napIdentity)};
+        if(index>=0)planning.pins[index]=p;else planning.pins.push(p);message='Nap pin saved on this phone. Review the schedule for changes.';
         planning.pins=planning.pins.filter(x=>x.ordinal>actual.length||x.anchors.some((id,i)=>!actual[i]||WW.napIdentity(actual[i])!==id));
       }else if(action==='releasePin'){
         if(!planning.pins.some(x=>x.id===d.id))throw Error('Select a saved nap pin.');planning.pins=planning.pins.filter(x=>x.id!==d.id);message='Nap pin released.';
@@ -110,7 +149,7 @@ async function runWakeWindow(runtime={}) {
       if(d.settings.timezone!==s.timezone && hasEvents)throw Error('Change timezone before adding entries. V1 keeps a fixed household timezone for existing records.');
       await writeEvent('settings',d.settings,d.base,selectedDate);message='Shared defaults saved on this phone.';
     }else if(action==='bedtime'){
-      WW.wall(selectedDate,d.time,s.timezone);await writeEvent('bedtime:'+selectedDate,d.time,d.base,selectedDate);message='Bedtime updated and schedule recalculated.';
+      WW.wall(selectedDate,d.time,s.timezone);await writeEvent('bedtime:'+selectedDate,d.time,d.base,selectedDate);message='Bedtime target updated.';
     }else if(action==='morning'){
       const iso=d.time?WW.wall(selectedDate,d.time,s.timezone):null;WW.validateDay({...fresh.day,morning:iso},s,now());await writeEvent('morning:'+selectedDate,iso,d.base,selectedDate,!iso);message='Morning wake updated.';
     }else if(action==='activeNap'){
@@ -137,7 +176,7 @@ async function runWakeWindow(runtime={}) {
       if(!d.entity&&!active && old && old.deleted && !d.imported)base=old.id;
       else if(!d.entity&&!active && (old || fresh.day.naps.some(n=>n.start===start&&n.end===end))) return {snapshot:fresh,message:'This nap was already imported (or deleted). No duplicate was added.'};
       WW.validateDay({...fresh.day,naps:fresh.day.naps.filter(n=>n.entity!==entity).concat({start,end})},s,now());
-      await writeEvent(entity,{start,end},base,selectedDate);message=active?'Actual wake saved. The same nap is now completed and the day recalculated.':'Nap saved on this phone. Schedule recalculated.';
+      await writeEvent(entity,{start,end},base,selectedDate);message=active?'Actual wake saved. The nap is complete.':'Nap saved on this phone.';
     }else if(action==='deleteNap'){
       if(!d.entity||!d.entity.startsWith('nap:'+selectedDate+':'))throw Error('Select a recorded nap.');await writeEvent(d.entity,null,d.base,selectedDate,true);message='Nap removed from the displayed day.';
     }else throw Error('Unknown dashboard action.');

@@ -39,12 +39,17 @@ const WW = (() => {
   function validateSettings(s) {
     if (!s || !/^(?:[01]\d|2[0-3]):[0-5]\d$/.test(s.bedtime)) throw Error('Enter a valid bedtime.');
     try { if(typeof s.timezone!=='string'||!s.timezone.trim())throw Error();parts(Date.now(),s.timezone); } catch { throw Error('Enter a valid IANA timezone, such as America/Indiana/Indianapolis.'); }
-    for (const key of ['nap','first','second','later','final']) {
+    for (const key of ['nap','first','second','later','final', ...['short','long'].filter(k=>s[k]!==undefined)]) {
       const r=s[key];
       if (!r || !['min','ideal','max'].every(k=>Number.isInteger(r[k]) && r[k]>=1 && r[k]<=600) || r.min>r.ideal || r.ideal>r.max) throw Error(`${key}: use whole minutes with minimum ≤ preferred ≤ maximum (1–600).`);
     }
+    const {target,max}=napCounts(s);
+    if(![target,max].every(n=>Number.isInteger(n)&&n>=0&&n<=6)||target>max)
+      throw Error('Use a daily nap target and maximum between 0 and 6, with target at or below maximum.');
     return s;
   }
+  const napCounts=s=>({target:s.napTarget===undefined?3:s.napTarget,max:s.napMax===undefined?6:s.napMax});
+  const napProfiles=s=>({standard:s.nap,short:s.short||{min:20,ideal:35,max:45},long:s.long||{min:90,ideal:105,max:120}});
   function validateDay(day,s,now=Date.now()) {
     const naps=[...(day.naps||[])].sort((a,b)=>Date.parse(a.start)-Date.parse(b.start));
     let previous=day.morning ? Date.parse(day.morning) : -Infinity;
@@ -91,7 +96,7 @@ const WW = (() => {
     const score=segments.reduce((a,s,i)=>a+Math.pow((vals[i]-s.ideal)/scale(s),2),0)/segments.length;
     return {vals,score};
   }
-  function plan(day,s,now=Date.now()) {
+  function planningAnchor(day,s,now=Date.now()) {
     validateSettings(s);
     const all=validateDay(day,s,now),naps=all.filter(n=>n.end!==null),activeNap=all.find(n=>n.end===null)||null;
     const activeInfo=activeNap?{activeNap,expectedWake:Date.parse(activeNap.expectedEnd),sleepElapsed:Math.max(0,Math.floor((now-Date.parse(activeNap.start))/60000))}:{};
@@ -100,12 +105,19 @@ const WW = (() => {
     const target=Date.parse(wall(day.date,day.bedtime||s.bedtime,s.timezone));
     if(activeNap&&now>=anchor)return {status:'active-overdue',events:[],anchor,target,elapsed:0,...activeInfo,message:'Still marked asleep. The expected wake time has passed. Update it or record the actual wake to refresh the remaining plan.'};
     const elapsed=Math.max(0,Math.ceil((now-anchor)/60000));
+    return {anchor,target,elapsed,...activeInfo};
+  }
+  function plan(day,s,now=Date.now()) {
+    const base=planningAnchor(day,s,now);
+    if(base.status)return base;
+    const {anchor,target,elapsed,activeNap,...activeDetails}=base;
+    const naps=day.naps||[],activeInfo=activeNap?{activeNap,...activeDetails}:{};
     if(now>=target) return {status:'past',events:[],anchor,target,elapsed,...activeInfo,message:'The chosen bedtime has arrived. Actual records are kept; start a new day with a morning wake entry.'};
     const candidates=[];
     for(let count=0;count<=6;count++) {
       const seg=[];
       for(let i=0;i<count;i++) {
-        const index=naps.length+(activeNap?1:0)+i;
+        const index=naps.length+i;
         const w=index===0?s.first:(index===1?s.second:s.later);
         seg.push({...w,kind:'awake'}, {...s.nap,kind:'nap'});
       }
@@ -215,6 +227,6 @@ const WW = (() => {
     }
     return {latest,conflicts};
   }
-  return {defaults,copy,pad,parts,wall,validateSettings,validateDay,allocate,plan,parseOCR,napKey,reduce};
+  return {defaults,copy,pad,parts,wall,validateSettings,validateDay,napCounts,napProfiles,planningAnchor,allocate,plan,parseOCR,napKey,reduce};
 })();
 if(typeof module!=='undefined' && module.exports) module.exports=WW;

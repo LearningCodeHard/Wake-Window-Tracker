@@ -47,3 +47,11 @@ The exact artifact is promoted at production sequence 4. Install production
 launcher 1.0.3 once for direct Updates controls, retaining Wake_Window_PROD and
 WakeWindowShared. Then verify version/channel, existing actuals/settings and
 Huckleberry import review on each phone. These rollout results remain unreported.
+
+## TEST 2.1.0 schedule approval
+
+1. Close the TEST dashboard and run **Wake_Window_TEST** again. Check **2.1.0 · TEST** in the footer.
+2. In demo mode, approve the initial schedule and tap **Refresh**. Confirm the same times. Advance the demo clock twice and confirm the next nap shows **Overdue** with its original time.
+3. Tap **Recalculate**, compare the bedtime and tradeoffs, then tap **Keep Current**. Verify that the approved schedule is still shown. Change the bedtime target or add a keep-awake period and check that **Adjustment Needed** explains the change.
+4. In both themes, verify that Tradeoffs starts in the same column across the alternatives and that each nap shows its preceding wake window. Confirm the nap target, maximum and all three duration ranges are editable in Settings.
+5. On both phones, use **Updates → Use Separate Test Folder**, then reopen TEST. In the shared test folder, enter synthetic sleep records and approve a schedule on phone A. Refresh phone B and reopen TEST on both phones to confirm the same approval. Log a nap 11 minutes off the approved time on one phone and refresh the other. Verify the proposed change appears while the original schedule stays saved until a parent approves a replacement.

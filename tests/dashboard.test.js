@@ -12,7 +12,7 @@ function screen(){
  for(const m of html.matchAll(/<script>([\s\S]*?)<\/script>/g))vm.runInContext(m[1],context);
  return {context,nodes,run:s=>vm.runInContext(s,context)};
 }
-test('demo UI presents the exact noon schedule and bedtime once',()=>{const s=screen();const t=s.nodes.get('timeline').innerHTML;assert.match(t,/2:00 PM/);assert.match(t,/5:00 PM/);assert.equal((t.match(/8:00 PM/g)||[]).length,1);assert.match(s.nodes.get('guidanceText').textContent,/boundary/);});
+test('demo UI presents the exact noon schedule and bedtime once',()=>{const s=screen();const t=s.nodes.get('timeline').innerHTML;assert.match(t,/2:00 PM/);assert.match(t,/5:00 PM/);assert.equal((t.match(/8:00 PM/g)||[]).length,1);assert.equal(s.nodes.get('timelineNote').textContent,'Needs Approval');});
 test('test identity stays explicit in demo and folder modes without a demo banner',()=>{
  const s=screen();s.run("S.release={channel:'test',version:'2.0.4'};render()");assert.equal(s.nodes.get('appTitle').textContent,'Graham’s Day Planner');assert.match(s.nodes.get('saveState').textContent,/TEST.*Demo only.*clock 12:00 PM.*no shared writes/);assert.doesNotMatch(html,/id="demoBanner"/);
  s.run("S.now+=90*60000;render()");assert.match(s.nodes.get('saveState').textContent,/clock 1:30 PM/);
@@ -95,7 +95,7 @@ test('morning wake removal also works without host browser dialogs',async()=>{
  const s=screen();s.run("S.day.morning=WW.wall(S.date,'07:00',S.settings.timezone);S.revisions.morning='morning-r1';morningSheet();removeMorning()");assert.equal(s.context.__queue.length,0);const promise=s.run('confirmDeletion()'),q=s.context.__queue.shift();assert.equal(q.action,'morning');assert.equal(q.data.time,null);assert.equal(q.data.base,'morning-r1');s.context.receive({id:q.id,message:'Removed'});await promise;
 });
 test('all clock-time forms use single native fields while record dates remain automatic',()=>{
- const s=screen();for(const open of ['napSheet()','activeNapSheet()','napSheet(0)','morningSheet()','awakeSheet()','pinSheet(2)','bedtimeSheet()','settingsSheet()']){s.run(open);const body=s.nodes.get('modalBody').innerHTML;assert.doesNotMatch(body,/id="napDate"|type="date"|<select|type="hidden"/);assert.match(body,/type="time" step="60"/);}assert.match(html,/type="date" id="viewDate"/);
+ const s=screen();for(const open of ['napSheet()','activeNapSheet()','napSheet(0)','morningSheet()','awakeSheet()','pinSheet(2)','bedtimeSheet()','settingsSheet()']){s.run(open);const body=s.nodes.get('modalBody').innerHTML;assert.doesNotMatch(body,/id="napDate"|type="date"|<select(?! id="pinProfile")|type="hidden"/);assert.match(body,/type="time" step="60"/);}assert.match(html,/type="date" id="viewDate"/);
 });
 test('native fields initialize imported exact minutes and PM correctly',()=>{
  const s=screen();s.run("napSheet(null,{start:WW.wall(S.date,'13:07',S.settings.timezone),end:WW.wall(S.date,'14:59',S.settings.timezone),messages:[]})");assert.equal(s.nodes.get('napStart').value,'13:07');assert.equal(s.nodes.get('napEnd').value,'14:59');
@@ -142,4 +142,25 @@ test('Add disables starting a second active nap while completed logging remains 
 });
 test('failed update controls keep their screen and release data without claiming a sleep save',async()=>{
  const s=screen();s.run("S.release={channel:'test',version:'2.0.5',updateInfo:{actions:[],status:'Offline'}};updatesSheet()");const promise=s.run("applyUpdateControl('revert')"),q=s.context.__queue.shift();s.context.receive({id:q.id,error:'No verified previous release'});await promise;assert.match(s.nodes.get('modalError').textContent,/No verified/);assert.equal(s.nodes.get('modal').classList.contains('open'),true);assert.equal(s.nodes.get('operationState').textContent,'');assert.equal(s.nodes.get('body').classList.contains('native-busy'),false);
+});
+
+test('approved timeline stays fixed as the demo clock passes a scheduled nap',()=>{
+ const s=screen();
+ s.run("S.approved=WW.approval.saveApproval(S,currentPlan,clock());render()");
+ assert.equal(s.nodes.get('timelineNote').textContent,'Approved');
+ const bedtime=s.run('currentPlan.bedtime');
+ s.run("S.now+=150*60000;render()");
+ assert.equal(s.nodes.get('timelineNote').textContent,'Overdue');
+ assert.equal(s.run('currentPlan.bedtime'),bedtime);
+ assert.match(s.nodes.get('guidanceText').textContent,/Log it/);
+ assert.match(s.nodes.get('timeline').innerHTML,/Previous wake/);
+});
+test('recalculating and cancelling does not overwrite approval or issue a save',()=>{
+ const s=screen();
+ s.run("S.approved=WW.approval.saveApproval(S,currentPlan,clock());render();recalculate()");
+ assert.match(s.nodes.get('modalBody').innerHTML,/Tradeoffs/);
+ assert.match(s.nodes.get('modalBody').innerHTML,/Keep Current/);
+ s.run('closeSheet()');
+ assert.equal(s.context.__queue.length,0);
+ assert.equal(s.nodes.get('timelineNote').textContent,'Approved');
 });

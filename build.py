@@ -3,7 +3,7 @@ from pathlib import Path
 import json,re
 BASE=Path(__file__).parent
 root=BASE.parent
-core=(BASE/'src/core.js').read_text()+'\n'+(BASE/'src/planning.js').read_text()
+core='\n'.join((BASE/'src'/name).read_text() for name in ('core.js','planning.js','approval.js'))
 prototype=(BASE/'src/prototype.html').read_text()
 css=(BASE/'src/style.css').read_text()
 html=(BASE/'src/dashboard.html').read_text().replace('__PROTOTYPE_CSS__',css).replace('__CORE__',core).replace('__UI__',(BASE/'src/ui.js').read_text()+'\n'+(BASE/'src/render.js').read_text())

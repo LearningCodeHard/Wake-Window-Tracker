@@ -10,7 +10,7 @@ regression fixtures are published here.
 | Installed script | Initial app | Channel | Data |
 |---|---|---|---|
 | Wake_Window_PROD (or existing production name) | 2.0.5 | production | Existing WakeWindowShared bookmark |
-| Wake_Window_TEST | 2.0.5 | test | Demo by default; optional WakeWindowTestShared |
+| Wake_Window_TEST | 2.1.0 | test | Demo by default; optional WakeWindowTestShared |
 
 V1 functionality was accepted in the previous project chat. The new launcher
 integration was tested by the user, who authorized V2.0.5 production promotion
@@ -100,8 +100,8 @@ reset and conflicting saved versions inline. The warning’s Review Adjustments
 shortcut opens the same management controls. Confirmation screens still protect
 deletions/reset; they are not navigation menus.
 
-Both channels select the accepted 2.0.5 artifact; production sequence is 4 and
-test sequence is 5.
+Production selects the accepted 2.0.5 artifact at sequence 4. TEST selects
+2.1.0 at sequence 6 for schedule approval and alternatives.
 App changes arrive automatically; flat updater actions require the new direct
 bridge in launcher 1.0.3, so replace the installed launcher once. Older launchers
 still run the candidate and can use UPDATE_SETTINGS for native recovery controls.

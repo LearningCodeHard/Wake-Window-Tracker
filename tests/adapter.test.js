@@ -212,3 +212,55 @@ test('candidate routes direct updater actions without shared reads or sleep writ
 test('older launchers run the candidate but unsupported direct controls fail without modifying sleep data',async()=>{
  const store=shared();const r=await run(store,[command(1,'updateControl',{id:'pause'})],'OPEN',{channel:'test',version:'2.0.5',updates:async()=>{throw Error('must not open nested menu');}});assert.equal(r.snap.release.updateInfo,null);assert.match(r.responses[0].error,/launcher.*1.0.3/);assert.equal(store.files.size,0);
 });
+
+const planner=require('../src/approval.js');
+const testFolder={channel:'test',mode:'folder',input:'OPEN'};
+function separateTest(){
+ const store=shared();store.dirs.add('/testing');store.bookmarks={WakeWindowShared:'/shared',WakeWindowTestShared:'/testing'};
+ return store;
+}
+const approve=(s,id=2)=>command(id,'approvePlan',{date:s.date,signature:planner.approval.signature(s),generatedAt:s.now,compare:false,index:0});
+test('TEST approvals persist across reloads and material changes require a new explicit approval',async()=>{
+ const store=separateTest(),date='2026-10-05';
+ const initial=await run(store,[command(1,'morning',{date,time:'09:45',base:null}),approve],'OPEN',testFolder);
+ assert.ok(initial.snap.approved);assert.equal(initial.responses[1].saveConfirmed,true);
+ const phoneB=await run(store,[],'OPEN',testFolder);
+ assert.equal(JSON.stringify(phoneB.snap.approved),JSON.stringify(initial.snap.approved));
+ const revised=await run(store,[command(1,'bedtime',{date,time:'20:30',base:null}),s=>approve(s)],'OPEN',testFolder);
+ assert.equal(JSON.stringify(revised.responses[0].snapshot.approved),JSON.stringify(initial.snap.approved));
+ assert.match(planner.approval.changes(revised.responses[0].snapshot,initial.snap.approved).join(),/bedtime target/);
+ assert.notEqual(revised.snap.revisions.approval,initial.snap.revisions.approval);
+ assert.ok([...store.files.keys()].every(p=>p.startsWith('/testing/')));
+});
+test('approval protects against a stale preview and explicitly resolves simultaneous approvals',async()=>{
+ const store=separateTest(),date='2026-10-05';
+ const r=await run(store,[command(1,'morning',{date,time:'09:45',base:null}),approve],'OPEN',testFolder);
+ const previous=r.snap,record=[...store.files.values()].map(JSON.parse).find(x=>x.entity==='approval:'+date);
+ const sibling={...record,id:'competing-approval',value:{...record.value,generatedAt:record.value.generatedAt-1}};
+ store.files.set('/testing/events/'+date+'__competing-approval.json',JSON.stringify(sibling));
+ const conflict=await run(store,[approve.bind(null,previous),s=>command(3,'resolveApproval',{date,version:record.id,signature:planner.approval.signature(s)})],'OPEN',testFolder);
+ assert.match(conflict.responses[0].error,/changed/);
+ assert.equal(conflict.responses[1].saveConfirmed,true);
+ assert.equal(conflict.snap.approvalVersions.length,0);
+ assert.equal(JSON.stringify(conflict.snap.approved.plan),JSON.stringify(record.value.plan));
+ assert.equal(conflict.snap.approved.resolved.length,2);
+ assert.ok([...store.files.values()].map(JSON.parse).some(r=>r.id===sibling.id));
+});
+test('approval tracks strict 10-minute tolerance for starts, finishes and an active nap baseline',()=>{
+ const date='2026-10-05',settings=planner.copy(planner.defaults);
+ const at=t=>planner.wall(date,t,settings.timezone),now=Date.parse(at('07:00'));
+ const S={date,settings,day:{date,morning:at('07:00'),naps:[]}};
+ const plan=planner.plan(S.day,settings,now),approved=planner.approval.saveApproval(S,plan,now);
+ const event=plan.events.find(e=>e.kind==='nap'),iso=t=>new Date(t).toISOString();
+ S.day.naps=[{entity:'n1',revision:'1',start:iso(event.start+10*60000),end:iso(event.end+10*60000)}];
+ assert.deepEqual(planner.approval.changes(S,approved),[]);
+ S.day.naps[0].end=iso(event.end+11*60000);
+ assert.deepEqual(planner.approval.changes(S,approved),['Nap 1 ended 11 minutes later than approved.']);
+ S.day.naps[0].start=iso(event.start-11*60000);
+ assert.match(planner.approval.changes(S,approved)[0],/started 11 minutes earlier/);
+ S.day.naps[0]={entity:'n1',revision:'2',start:iso(event.start),end:null,expectedEnd:iso(event.end)};
+ const activeTime=event.start+5*60000;
+ const active=planner.approval.saveApproval(S,planner.plan(S.day,settings,activeTime),activeTime);
+ S.day.naps[0].end=iso(event.end-11*60000);
+ assert.match(planner.approval.changes(S,active)[0],/ended 11 minutes earlier/);
+});
