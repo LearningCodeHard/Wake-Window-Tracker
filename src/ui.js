@@ -18,8 +18,7 @@ function field(label,id,type,value){
 }
 function setTime(id,value){$(id).value=value;}
 function napDateNote(date){const today=WW.parts(clock(),S.settings.timezone).date;return date===today?'Today':new Intl.DateTimeFormat('en-US',{timeZone:S.settings.timezone,month:'short',day:'numeric',year:'numeric'}).format(new Date(WW.wall(date,'12:00',S.settings.timezone)));}
-function saveButtons(handler,label='Save'){return `<div class="sheet-actions"><button onclick="closeSheet()">Cancel</button><button class="save" onclick="${handler}">${label}</button></div>`;}
-async function refresh(){await act('load',{date:S.date},false);}
+function saveButtons(handler,label='Save',footer=false){const buttons=`<button onclick="closeSheet()">Cancel</button><button class="save" onclick="${handler}">${label}</button>`;return footer?buttons:`<div class="sheet-actions">${buttons}</div>`;}
 async function changeDay(date){await act('load',{date},false);}
 function morningSheet(){openSheet('Morning Wake',`<p>Actual wake time for ${esc(S.date)}.</p><div class="form-grid">${field('Wake time','morning','time',S.day.morning?WW.parts(S.day.morning,S.settings.timezone).time:'')}</div>${saveButtons('saveMorning()')}${S.day.morning?'<div class="toolbar"><button class="small-btn destructive" onclick="removeMorning()">Remove Morning Wake</button></div>':''}`);}
 async function saveMorning(){await act('morning',{date:S.date,time:$('morning').value,base:S.revisions.morning});}
@@ -54,12 +53,27 @@ function updateExpectedFromStart(){try{setTime('napExpected',WW.parts(Date.parse
 async function saveActiveNap(){if(window.confirmActive&&!$('confirmActive').checked){$('modalError').textContent='Confirm the nap is still in progress, or cancel and enter a completed nap.';return;}const e=window.editingNap;await act('activeNap',{date:window.napEntryDate,start:$('napStart').value,expectedEnd:$('napExpected').value,entity:e?e.entity:null,base:e?e.base:null,imported:!!window.importedNap});}
 function finishNapSheet(index){napSheet(index);}
 async function endNapNow(index){const n=S.day.naps[index];if(!n||n.end!==null){toast('Refresh to view the current nap.');return;}await act('nap',{date:S.date,start:WW.parts(n.start,S.settings.timezone).time,end:WW.parts(clock(),S.settings.timezone).time,entity:n.entity,base:n.revision});}
-function bedtimeSheet(){openSheet('Bedtime today',`<p>Change the target for ${esc(S.date)}. The planner will choose the remaining nap count and timings.</p><div class="form-grid">${field('Target bedtime','todayBed','time',S.day.bedtime||S.settings.bedtime)}</div>${saveButtons('saveBedtime()')}`);}
+function bedtimeSheet(){openSheet('Bedtime Target',`<p>Change the target for ${esc(S.date)}. The planner will choose the remaining nap count and timings.</p><div class="form-grid">${field('Target bedtime','todayBed','time',S.day.bedtime||S.settings.bedtime)}</div>${saveButtons('saveBedtime()')}`);}
 async function saveBedtime(){await act('bedtime',{date:S.date,time:$('todayBed').value,base:S.revisions.bedtime});}
+let napCountsEdit;
+function napCountFields({target,max}){
+  return `<div class="triple setting-pair">${field('Preferred naps','napTarget','number',target)}${field('Maximum naps','napMax','number',max)}</div>`;
+}
+function napCountsSheet(){
+  napCountsEdit={date:S.date,base:S.revisions.settings};
+  openSheet('Daily Naps',`<p>Shared defaults for both phones. The maximum includes recorded and active naps.</p>
+    <div class="settings-card">${napCountFields(WW.napCounts(S.settings))}</div>`,saveButtons('saveNapCounts()','Save',true));
+}
+function enteredNapCounts(){
+  return Object.fromEntries(['napTarget','napMax'].map(key=>[key,$(key).value===''?null:Number($(key).value)]));
+}
+async function saveNapCounts(){
+  await act('napCounts',{...napCountsEdit,...enteredNapCounts()});
+}
 const durationLabels={short:'Short nap',nap:'Standard nap',long:'Long nap',first:'First wake window',second:'Second wake window',later:'Later wake windows',final:'Final wake window'};
 function settingsSheet(){
   window.settingsBase=S.revisions.settings;
-  const counts=WW.napCounts(S.settings),profiles=WW.napProfiles(S.settings);
+  const profiles=WW.napProfiles(S.settings);
   const rangeFields=keys=>keys.map(key=>{
     const range=profiles[key]||S.settings[key];
     return `<div class="setting-group"><h4>${durationLabels[key]}</h4><div class="triple">${['min','ideal','max'].map((x,i)=>
@@ -67,9 +81,7 @@ function settingsSheet(){
   }).join('');
   const content=`<section class="settings-section">
     <h3>Daily naps</h3>
-    <div class="settings-card"><div class="triple setting-pair">
-      ${field('Target naps','napTarget','number',counts.target)}${field('Maximum naps','napMax','number',counts.max)}
-    </div><p>The maximum includes recorded and active naps.</p></div>
+    <div class="settings-card">${napCountFields(WW.napCounts(S.settings))}<p>The maximum includes recorded and active naps.</p></div>
   </section>
   <section class="settings-section"><h3>Nap duration profiles <span>Minutes</span></h3>
     <div class="settings-card">${rangeFields(['short','nap','long'])}<p>The planner selects a profile automatically. Tap a planned nap to override it.</p></div>
@@ -93,8 +105,7 @@ function settingsSheet(){
 
 }
 async function saveSettings(){
-  const settings={timezone:$('timezone').value.trim(),bedtime:$('defaultBed').value};
-  for(const key of ['napTarget','napMax'])settings[key]=$(key).value===''?null:Number($(key).value);
+  const settings={timezone:$('timezone').value.trim(),bedtime:$('defaultBed').value,...enteredNapCounts()};
   for(const key of Object.keys(durationLabels))settings[key]=Object.fromEntries(['min','ideal','max'].map(x=>[x,Number($(key+'_'+x).value)]));
   await act('settings',{settings,base:window.settingsBase});
 }

@@ -264,3 +264,19 @@ test('approval tracks strict 10-minute tolerance for starts, finishes and an act
  S.day.naps[0].end=iso(event.end-11*60000);
  assert.match(planner.approval.changes(S,active)[0],/ended 11 minutes earlier/);
 });
+
+test('quick nap counts preserve shared settings, validate the range and reject a stale edit',async()=>{
+ const store=shared(),settings=W.copy(W.defaults);settings.bedtime='19:30';settings.final.ideal=155;
+ const saved=await run(store,[command(1,'settings',{settings,base:null})]);
+ const base=saved.snap.revisions.settings;
+ const r=await run(store,[
+  command(2,'napCounts',{napTarget:5,napMax:3,base}),
+  command(3,'napCounts',{napTarget:2,napMax:4,base}),
+  command(4,'napCounts',{napTarget:1,napMax:2,base})
+ ]);
+ assert.match(r.responses[0].error,/target at or below maximum/);
+ assert.match(r.responses[2].error,/changed since you opened it/);
+ assert.equal(r.snap.settings.napTarget,2);assert.equal(r.snap.settings.napMax,4);
+ assert.equal(r.snap.settings.bedtime,'19:30');assert.equal(r.snap.settings.final.ideal,155);
+ assert.equal(store.files.size,2);
+});

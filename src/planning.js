@@ -33,13 +33,14 @@ const WWPlanning = (() => {
     }
     const changedHistory=p=>p.anchors.some((id,i)=>!actual[i]||identity(actual[i])!==id);
     const pins=data.pins.filter(p=>p.ordinal>countActual||changedHistory(p));
-    const blocked=(message,reason)=>[{...base,status:'blocked',events:[],message,reason,notes,pins}];
+    const blocked=(message,reason,blocker)=>[{...base,status:'blocked',events:[],message,reason,notes,pins,blocker}];
     if(day.planningConflict)return blocked('Both parents edited the day plan. Review the saved versions and choose the appointments and pins to use.','concurrent-plans');
     if(pins.some(changedHistory))return blocked('Earlier nap history changed. Release the affected pins and pin the new suggestions if needed.','history');
     if(pins.some(p=>p.start!==null&&Date.parse(p.start)<now))return blocked('A pinned nap start has passed. Log the nap, move its start, or release the pin.','expired-pin');
-    if(base.activeNap&&data.awake.some(a=>overlap(Date.parse(base.activeNap.start),base.expectedWake,Date.parse(a.start),Date.parse(a.end)))){
+    const activeAppointment=base.activeNap&&data.awake.find(a=>overlap(Date.parse(base.activeNap.start),base.expectedWake,Date.parse(a.start),Date.parse(a.end)));
+    if(activeAppointment){
       notes.push('The current nap or its expected wake overlaps an awake period.');
-      if(base.status!=='active-overdue')return blocked('The current nap estimate overlaps a keep-awake period. Update expected wake or move the appointment.','active-overlap');
+      if(base.status!=='active-overdue')return blocked('The current nap estimate overlaps a keep-awake period. Update expected wake or move the appointment.','active-overlap',{appointment:activeAppointment});
     }
     if(base.status)return [{...base,notes,pins}];
     const {anchor,target,elapsed}=base;
@@ -114,7 +115,12 @@ const WWPlanning = (() => {
     if(!standard.length){
       if(elapsed>Math.max(s.final.max,wakeRange(countActual).max))
         return blocked('The current wake window already exceeds your configured maximum. Log any missed nap or review the applicable wake-window limits in Settings.','wake-limit');
-      if(pins.length)return blocked('No schedule fits the saved nap pins the wake windows, nap profiles or appointments. Move or release a pin, or review its duration profile.','pins');
+      for(const pin of pins){
+        if(pin.start===null)continue;
+        const appointment=data.awake.find(a=>Date.parse(a.start)<=Date.parse(pin.start)&&Date.parse(pin.start)<Date.parse(a.end));
+        if(appointment)return blocked('A pinned nap starts during an awake period.','pins',{pin,appointment});
+      }
+      if(pins.length)return blocked('No schedule fits the saved nap pins within the wake windows, nap profiles or appointments. Move or release a pin, or review its duration profile.','pins');
       if(periods.length)return blocked(`No schedule fits around ${periods.map(a=>a.label||'the keep-awake period').join(', ')} within your limits. Review the appointment times or nap and wake-window settings.`,'appointments');
       return blocked('No bedtime fits the remaining wake-window limits today. Review the recorded wake time, nap allowance or final wake-window settings.','day-end');
     }

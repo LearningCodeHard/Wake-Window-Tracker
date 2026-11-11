@@ -50,8 +50,9 @@ test('today’s timeline orders actual and proposed events and displays their wa
  assert.ok(timeline.indexOf('Morning wake')<timeline.indexOf('Nap 1'));
  assert.ok(timeline.indexOf('Nap 1')<timeline.indexOf('Nap 2'));
  assert.match(timeline,/Nap 1 <span class="tag">Recorded<\/span>[\s\S]*?Previous wake window · 2h/);
- assert.match(timeline,/Nap 2 <span class="tag">Suggested<\/span>[\s\S]*?Previous wake window · 2h/);
+ assert.match(timeline,/Nap 2 <span class="tag">Next · Suggested<\/span>[\s\S]*?Previous wake window · 2h/);
  assert.match(timeline,/Final wake window/);
+ assert.equal((timeline.match(/next-nap/g)||[]).length,1);
 });
 test('concurrent shared plan versions are presented and choosing requires confirmation',()=>{
  const s=screen();s.run("S.day.planningConflict=true;S.planningVersions=[{id:'one',at:'2026-10-05T16:00:00Z',value:{awake:[{id:'a',label:'Parent A appointment',start:WW.wall(S.date,'14:00',S.settings.timezone),end:WW.wall(S.date,'14:30',S.settings.timezone)}],pins:[]}},{id:'two',at:'2026-10-05T16:01:00Z',value:{awake:[{id:'b',label:'Parent B appointment',start:WW.wall(S.date,'15:00',S.settings.timezone),end:WW.wall(S.date,'15:30',S.settings.timezone)}],pins:[]}}];render();planningSheet()");assert.match(s.nodes.get('modalBody').innerHTML,/Parent A appointment/);assert.match(s.nodes.get('modalBody').innerHTML,/Parent B appointment/);s.run("choosePlanningVersion('one')");assert.equal(s.context.__queue.length,0);assert.equal(s.context.pendingDeletion.action,'resolvePlanning');
@@ -128,7 +129,10 @@ test('a form opened before midnight preserves its nap date while a newly opened 
 
 test('footer navigation is direct and status is last after every page control',()=>{
  const footer=html.match(/<footer>([\s\S]*?)<\/footer>/)[1];
- assert.doesNotMatch(footer,/morningSheet/);assert.match(footer,/onclick="bedtimeSheet\(\)">Change Bedtime/);assert.match(footer,/onclick="updatesSheet\(\)">Updates/);assert.match(footer,/onclick="refresh\(\)">Refresh/);
+ assert.match(footer,/onclick="addSheet\(\)"[\s\S]*onclick="recalculate\(\)"[\s\S]*onclick="moreSheet\(\)"/);
+ assert.doesNotMatch(footer,/morningSheet|bedtimeSheet|updatesSheet/);
+ const menu=screen();menu.run('moreSheet()');
+ assert.match(menu.nodes.get('modalBody').innerHTML,/Refresh Shared Day[\s\S]*Planner Settings[\s\S]*Updates/);
  assert.ok(footer.lastIndexOf('</button>')<footer.indexOf('id="saveState"'));assert.ok(footer.indexOf('id="operationState"')>footer.indexOf('id="saveState"'));assert.doesNotMatch(footer,/Plan Details|Day Adjustments/);
  const s=screen();assert.equal(s.nodes.get('timelineTitle').textContent,'Today’s Plan');s.run('addSheet()');assert.doesNotMatch(s.nodes.get('modalBody').innerHTML,/morningSheet|Morning Wake/);assert.match(s.nodes.get('modalBody').innerHTML,/awakeSheet/);assert.match(s.nodes.get('modalBody').innerHTML,/activeNapSheet\(\)">Start Nap/);assert.match(s.nodes.get('modalBody').innerHTML,/napSheet\(\)">Log Completed Nap/);assert.doesNotMatch(s.nodes.get('modalBody').innerHTML,/napAction|Start or Log Nap/);
 });
@@ -185,8 +189,8 @@ test('a bedtime change opens actionable revision review and preserves approved t
  assert.equal(s.nodes.get('modalTitle').textContent,'Adjustment Needed');
  assert.match(s.nodes.get('modalBody').innerHTML,/Recommended adjustments/);
  assert.match(s.nodes.get('modalBody').innerHTML,/Approved bedtime<\/dt><dd>8:00 PM/);
- assert.equal(s.nodes.get('bedtimeMetricLabel').textContent,'Approved bedtime');
- assert.equal(s.nodes.get('bedtimeMetric').textContent,'8:00 PM');
+ assert.equal(s.nodes.get('bedtimeMetric').textContent,'7:30 PM');
+ assert.match(s.nodes.get('timeline').innerHTML,/8:00 PM/);
  assert.equal(s.context.__queue.length,0);
 });
 
@@ -196,7 +200,8 @@ test('Morning Wake opens the editor from the summary, including on a past day wi
  s.run("S.date='2026-10-04';S.day={date:S.date,morning:null,bedtime:null,naps:[]};render()");
  assert.equal(s.nodes.get('morningMetric').textContent,'Set time');
  assert.equal(s.nodes.get('timelineNote').hidden,true);
- assert.equal(s.nodes.get('bedtimeMetricTile').hidden,true);
+ assert.equal(s.nodes.get('bedtimeMetric').textContent,'8:00 PM');
+ assert.equal(s.nodes.get('recalculateButton').disabled,true);
  s.run(open);
  assert.equal(s.nodes.get('modalTitle').textContent,'Morning Wake');
  s.nodes.get('morning').value='07:15';
@@ -205,4 +210,53 @@ test('Morning Wake opens the editor from the summary, including on a past day wi
  assert.equal(q.data.date,'2026-10-04');
  assert.equal(q.data.time,'07:15');
  s.context.receive({id:q.id,message:'Saved'});await promise;
+});
+
+test('quick nap-count editor saves only the two counts with the settings revision',async()=>{
+ const s=screen();
+ const open=html.match(/id="napMetricTile" onclick="([^"]+)"/)[1];
+ s.run("S.revisions.settings='initial';"+open);
+ assert.equal(s.nodes.get('modalTitle').textContent,'Daily Naps');
+ assert.equal(s.nodes.get('napTarget').value,'3');
+ assert.equal(s.nodes.get('napMax').value,'6');
+ s.nodes.get('napTarget').value='2';s.nodes.get('napMax').value='4';
+ const promise=s.run('saveNapCounts()'),q=s.context.__queue.shift();
+ assert.equal(q.action,'napCounts');
+ assert.deepEqual(JSON.parse(JSON.stringify(q.data)),{date:'2026-10-05',base:'initial',napTarget:2,napMax:4});
+ s.context.receive({id:q.id,message:'Saved'});await promise;
+});
+
+function afternoon(s){
+ s.run(`var at=t=>WW.wall(S.date,t,S.settings.timezone);
+ S.now=Date.parse(at('15:05'));S.settings.napMax=3;S.day.morning=at('07:00');
+ S.day.naps=[{start:at('09:15'),end:at('10:30')},{start:at('12:45'),end:at('14:00')}];`);
+}
+test('a pinned nap overlapping an appointment explains the exact conflict and checks a release preview',()=>{
+ const s=screen();afternoon(s);
+ s.run(`S.day.planning={awake:[{id:'visit',label:'Appointment',start:at('16:00'),end:at('16:15')}],
+ pins:[{id:'pin',ordinal:3,start:at('16:05'),minutes:null,anchors:[]}]};render();recalculate()`);
+ assert.match(s.nodes.get('guidanceText').textContent,/Nap 3 is pinned at 4:05 PM/);
+ const body=s.nodes.get('modalBody').innerHTML;
+ assert.match(body,/4:00 PM–4:15 PM/);
+ assert.match(body,/With the pin released, Nap 3 can start at 4:15 PM and bedtime can be 8:00 PM/);
+ assert.match(body,/pinSheet\(3\)/);
+ assert.match(body,/awakeSheet\(&quot;visit&quot;\)/);
+ assert.doesNotMatch(s.nodes.get('modalActions').innerHTML,/Approve/);
+ assert.equal(s.run('S.day.planning.pins.length'),1);
+ assert.equal(s.context.__queue.length,0);
+});
+test('a late final nap shows the actual time, limiting wake window, and feasible bedtime',()=>{
+ const s=screen();afternoon(s);
+ s.run(`S.day.planning={awake:[],pins:[{id:'pin',ordinal:3,start:at('16:30'),minutes:90,anchors:[]}]};
+ render();S.approved=WW.approval.saveApproval(S,currentPlan,clock());
+ S.now=Date.parse(at('18:25'));S.day.naps.push({start:at('16:30'),end:at('18:25')});
+ render();reviewSchedule()`);
+ assert.match(s.nodes.get('guidanceText').textContent,/Nap 3 ended 25 minutes later/);
+ assert.match(s.nodes.get('guidanceImpact').textContent,/2h minimum final wake window.*8:25 PM/);
+ const body=s.nodes.get('modalBody').innerHTML;
+ assert.match(body,/What changed/);
+ assert.match(body,/Edit Recorded Nap/);
+ assert.match(body,/Approved bedtime<\/dt><dd>8:00 PM/);
+ assert.match(body,/Selected bedtime<\/dt><dd>8:25 PM/);
+ assert.equal(s.context.__queue.length,0);
 });

@@ -72,3 +72,10 @@ Huckleberry import review on each phone. These rollout results remain unreported
 ## TEST 2.1.3 footer order
 
 Rerun **Wake_Window_TEST** and confirm **2.1.3 · TEST**. The top footer row should show **Change Bedtime** and **+ Add**. The second row should show **Refresh** and **Updates**. Tap both moved buttons to verify their menus.
+
+## TEST 2.1.4 refined timeline
+
+1. Close and rerun **Wake_Window_TEST**. Confirm **2.1.4 · TEST** in the footer. Check both themes for blue nap/edit icons, an amber bedtime icon, and a highlight on the next planned nap.
+2. In demo mode, tap **Morning Wake**, **Daily Naps**, and **Bedtime Target**. Check the selected date for wake and bedtime edits. Save a preferred count of 2 and a maximum of 4, then reopen Planner Settings and verify the counts. Check that preferred above maximum is rejected.
+3. Open **More** and confirm **Refresh Shared Day**, **Planner Settings**, then **Updates**. Check that **Add** opens its usual actions and **Recalculate** opens alternatives for review.
+4. In demo mode or the separate TEST folder, try a late final nap and a nap pin during an appointment. Check the cause, bedtime impact or verified release preview, and the direct edit action. A blocked schedule should have no approval action. Close the review and verify the approved plan stays in place.

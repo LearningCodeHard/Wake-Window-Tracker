@@ -143,11 +143,12 @@ async function runWakeWindow(runtime={}) {
       }
       WW.validatePlanning(planning,selectedDate,s);
       await writeEvent('planning:'+selectedDate,planning,base,selectedDate);
-    }else if(action==='settings'){
-      WW.validateSettings(d.settings);
+    }else if(action==='settings'||action==='napCounts'){
+      const settings=action==='napCounts'?{...s,napTarget:d.napTarget??null,napMax:d.napMax??null}:d.settings;
+      WW.validateSettings(settings);
       const hasEvents=demo?demoRecords.some(r=>r.entity!=='settings'):fm.listContents(dir('events')).some(n=>n.endsWith('.json'));
-      if(d.settings.timezone!==s.timezone && hasEvents)throw Error('Change timezone before adding entries. V1 keeps a fixed household timezone for existing records.');
-      await writeEvent('settings',d.settings,d.base,selectedDate);message='Shared defaults saved on this phone.';
+      if(settings.timezone!==s.timezone && hasEvents)throw Error('Change timezone before adding entries. V1 keeps a fixed household timezone for existing records.');
+      await writeEvent('settings',settings,d.base,selectedDate);message=action==='napCounts'?'Shared nap counts saved on this phone.':'Shared defaults saved on this phone.';
     }else if(action==='bedtime'){
       WW.wall(selectedDate,d.time,s.timezone);await writeEvent('bedtime:'+selectedDate,d.time,d.base,selectedDate);message='Bedtime target updated.';
     }else if(action==='morning'){
