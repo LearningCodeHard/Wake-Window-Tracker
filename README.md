@@ -10,6 +10,17 @@ The launcher checks manifest.json on each normal run, verifies SHA-256 and byte 
 
 Use UPDATE_STATUS for the cached version, or UPDATE_SETTINGS with Run in App on to pause updates or revert to a previously cached release.
 
+## Import a bank screenshot (v1.2.0)
+
+Create a Shortcut named **Import Bank Balance**:
+
+1. Enable **Show in Share Sheet** and accept **Images**. Use **Shortcut Input** as the image, or start with **Take Screenshot** if you prefer a shortcut that captures the screen itself.
+2. Add **Extract Text from Image** using that image.
+3. Add a **Dictionary** with two text entries: `action` = `IMPORT_BALANCE`, and `text` = the Extract Text from Image output (insert the output variable).
+4. Add Scriptable's **Run Script** action. Select your existing **Budget Planner** script, pass the Dictionary as **Parameter**, and turn **Run in App** on.
+
+From the screenshot share sheet, run **Import Bank Balance**. Review the suggested amount(s), select the correct tracked account balance or type it manually, choose the closing date, confirm, and save. The import updates the forecast's starting balance; it does not import transactions. Use a closing balance that includes all activity through the chosen date so same-day scheduled movements are not counted twice or omitted. The screenshot and extracted text are not stored by Budget Planner or sent to GitHub.
+
 ## Release process
 
 Build the Scriptable app as a module exporting async run(input). Keep real or example personal budget data out of the release. Verify shortcut inputs, offline operation, update integrity, and the existing local data schema. Write the immutable releases/<sha256>.js file and update manifest.json together, incrementing sequence. Publish only to this branch. Never reuse a sequence for different content. Changes to launcher capabilities require a new launcher install.

@@ -3,9 +3,9 @@
   "app": "budget-planner",
   "dataSchema": 1,
   "minLauncher": 1,
-  "version": "1.1.1",
-  "sequence": 1,
-  "bytes": 71517,
-  "sha256": "0e249a8fb4b21f9079fc71f65e31a686b39dc0ce58b5ffd022b356235cce78b9",
-  "path": "releases/0e249a8fb4b21f9079fc71f65e31a686b39dc0ce58b5ffd022b356235cce78b9.js"
+  "version": "1.2.0",
+  "sequence": 2,
+  "bytes": 75624,
+  "sha256": "4f2bb8de00070d28f4728ec324accaa5ac7055ca10fac53b0a1530e6c22e1cc5",
+  "path": "releases/4f2bb8de00070d28f4728ec324accaa5ac7055ca10fac53b0a1530e6c22e1cc5.js"
 }
