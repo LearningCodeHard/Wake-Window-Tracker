@@ -63,3 +63,8 @@ Huckleberry import review on each phone. These rollout results remain unreported
 3. Approve a demo plan and tap **Recalculate**. Check that **Tradeoffs** stays in the same column for every option. Select a plan with a different bedtime and check the change preview, then tap **Keep Current**.
 4. Change the bedtime target and open the proposed revision from **Adjustment Needed**. Check the reason, recommended adjustment, and approved versus selected bedtime. Cancel the review to keep the approved schedule.
 5. In **Planner Settings**, check the nap counts, nap profiles, wake windows, and schedule rules. Scroll the sheet and confirm **Save Settings** remains visible.
+
+## TEST 2.1.2 compact status and morning wake
+
+1. Rerun **Wake_Window_TEST** and confirm **2.1.2 · TEST**. Check that **Suggested** appears beside **Today’s Plan**, then approve a demo schedule and confirm it becomes **Approved**.
+2. Tap **Morning Wake** at the top and save a demo wake time. On a previous date, verify the tile still opens the editor for that date. Check that **Change Bedtime** and **Updates** are aligned in the footer.

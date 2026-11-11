@@ -32,13 +32,11 @@ function render(){
   if((S.conflicts||[]).length)warnings.push('Conflicting edits were found. Review the displayed entries and save again to acknowledge the latest revision.');
   if(historical)warnings.push('Viewing another date. Actual records and saved appointments are shown.');
   $('notice').hidden=!warnings.length;$('notice').textContent=warnings.join(' ');
-  $('scheduleStatus').hidden=!review.status;
-  $('scheduleStatus').dataset.status=review.status||'';
-  $('timelineNote').textContent=review.status||'';
-  $('scheduleSummary').textContent=review.saved?'Approved times stay fixed until you approve a revision.':
-    review.status==='Needs Approval'?'Review the suggested times before saving.':'';
-  $('dayMetrics').hidden=historical;
-  $('morningMetric').textContent=d.morning?fmt(d.morning):'—';
+  $('timelineNote').hidden=!review.status;
+  $('timelineNote').textContent=review.status==='Needs Approval'?'Suggested':review.status||'';
+  $('napMetricTile').hidden=historical;
+  $('bedtimeMetricTile').hidden=historical;
+  $('morningMetric').textContent=d.morning?fmt(d.morning):'Set time';
   $('napMetric').textContent=p.totalNaps==null?`${d.naps.length} logged`:`${p.totalNaps} / ${WW.napCounts(S.settings).target} target`;
   $('bedtimeMetricLabel').textContent=review.saved?'Approved bedtime':p.bedtime?'Proposed bedtime':'Bedtime target';
   $('bedtimeMetric').textContent=fmt(p.bedtime||target);

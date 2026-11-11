@@ -12,7 +12,7 @@ function screen(){
  for(const m of html.matchAll(/<script>([\s\S]*?)<\/script>/g))vm.runInContext(m[1],context);
  return {context,nodes,run:s=>vm.runInContext(s,context)};
 }
-test('demo UI presents the exact noon schedule and bedtime once',()=>{const s=screen();const t=s.nodes.get('timeline').innerHTML;assert.match(t,/2:00 PM/);assert.match(t,/5:00 PM/);assert.equal((t.match(/8:00 PM/g)||[]).length,1);assert.equal(s.nodes.get('timelineNote').textContent,'Needs Approval');});
+test('demo UI presents the exact noon schedule and bedtime once',()=>{const s=screen();const t=s.nodes.get('timeline').innerHTML;assert.match(t,/2:00 PM/);assert.match(t,/5:00 PM/);assert.equal((t.match(/8:00 PM/g)||[]).length,1);assert.equal(s.nodes.get('timelineNote').textContent,'Suggested');});
 test('test identity stays explicit in demo and folder modes without a demo banner',()=>{
  const s=screen();s.run("S.release={channel:'test',version:'2.0.4'};render()");assert.match(html,/<h1 id="appTitle">Graham’s Day Planner<\/h1>/);assert.match(s.nodes.get('saveState').textContent,/TEST.*Demo only.*clock 12:00 PM.*no shared writes/);assert.doesNotMatch(html,/id="demoBanner"/);
  s.run("S.now+=90*60000;render()");assert.match(s.nodes.get('saveState').textContent,/clock 1:30 PM/);
@@ -128,7 +128,7 @@ test('a form opened before midnight preserves its nap date while a newly opened 
 
 test('footer navigation is direct and status is last after every page control',()=>{
  const footer=html.match(/<footer>([\s\S]*?)<\/footer>/)[1];
- assert.match(footer,/onclick="morningSheet\(\)">Morning Wake/);assert.match(footer,/onclick="bedtimeSheet\(\)">Change Bedtime/);assert.match(footer,/onclick="updatesSheet\(\)">Updates/);assert.match(footer,/onclick="refresh\(\)">Refresh/);
+ assert.doesNotMatch(footer,/morningSheet/);assert.match(footer,/onclick="bedtimeSheet\(\)">Change Bedtime/);assert.match(footer,/onclick="updatesSheet\(\)">Updates/);assert.match(footer,/onclick="refresh\(\)">Refresh/);
  assert.ok(footer.lastIndexOf('</button>')<footer.indexOf('id="saveState"'));assert.ok(footer.indexOf('id="operationState"')>footer.indexOf('id="saveState"'));assert.doesNotMatch(footer,/Plan Details|Day Adjustments/);
  const s=screen();assert.equal(s.nodes.get('timelineTitle').textContent,'Today’s Plan');s.run('addSheet()');assert.doesNotMatch(s.nodes.get('modalBody').innerHTML,/morningSheet|Morning Wake/);assert.match(s.nodes.get('modalBody').innerHTML,/awakeSheet/);assert.match(s.nodes.get('modalBody').innerHTML,/activeNapSheet\(\)">Start Nap/);assert.match(s.nodes.get('modalBody').innerHTML,/napSheet\(\)">Log Completed Nap/);assert.doesNotMatch(s.nodes.get('modalBody').innerHTML,/napAction|Start or Log Nap/);
 });
@@ -188,4 +188,21 @@ test('a bedtime change opens actionable revision review and preserves approved t
  assert.equal(s.nodes.get('bedtimeMetricLabel').textContent,'Approved bedtime');
  assert.equal(s.nodes.get('bedtimeMetric').textContent,'8:00 PM');
  assert.equal(s.context.__queue.length,0);
+});
+
+test('Morning Wake opens the editor from the summary, including on a past day with no wake recorded',async()=>{
+ const s=screen();
+ const open=html.match(/<button[^>]*id="morningMetricButton"[^>]*onclick="([^"]+)"/)[1];
+ s.run("S.date='2026-10-04';S.day={date:S.date,morning:null,bedtime:null,naps:[]};render()");
+ assert.equal(s.nodes.get('morningMetric').textContent,'Set time');
+ assert.equal(s.nodes.get('timelineNote').hidden,true);
+ assert.equal(s.nodes.get('bedtimeMetricTile').hidden,true);
+ s.run(open);
+ assert.equal(s.nodes.get('modalTitle').textContent,'Morning Wake');
+ s.nodes.get('morning').value='07:15';
+ const promise=s.run('saveMorning()'),q=s.context.__queue.shift();
+ assert.equal(q.action,'morning');
+ assert.equal(q.data.date,'2026-10-04');
+ assert.equal(q.data.time,'07:15');
+ s.context.receive({id:q.id,message:'Saved'});await promise;
 });
