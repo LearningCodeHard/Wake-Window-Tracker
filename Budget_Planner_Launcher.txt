@@ -1,0 +1,114 @@
+// Variables used by Scriptable.
+// icon-color: brown; icon-glyph: chart-line;
+// Budget Planner GitHub launcher 1.0.0 — install in the existing Budget Planner script.
+// UPDATE_STATUS returns the installed version. UPDATE_SETTINGS requires Run in App ON.
+const ROOT='https://raw.githubusercontent.com/LearningCodeHard/Wake-Window-Tracker/budget-planner';
+const KEY='budget-planner:updates:v1';
+function sha256(bytes) {
+  const k=[0x428a2f98,0x71374491,0xb5c0fbcf,0xe9b5dba5,0x3956c25b,0x59f111f1,0x923f82a4,0xab1c5ed5,0xd807aa98,0x12835b01,0x243185be,0x550c7dc3,0x72be5d74,0x80deb1fe,0x9bdc06a7,0xc19bf174,0xe49b69c1,0xefbe4786,0x0fc19dc6,0x240ca1cc,0x2de92c6f,0x4a7484aa,0x5cb0a9dc,0x76f988da,0x983e5152,0xa831c66d,0xb00327c8,0xbf597fc7,0xc6e00bf3,0xd5a79147,0x06ca6351,0x14292967,0x27b70a85,0x2e1b2138,0x4d2c6dfc,0x53380d13,0x650a7354,0x766a0abb,0x81c2c92e,0x92722c85,0xa2bfe8a1,0xa81a664b,0xc24b8b70,0xc76c51a3,0xd192e819,0xd6990624,0xf40e3585,0x106aa070,0x19a4c116,0x1e376c08,0x2748774c,0x34b0bcb5,0x391c0cb3,0x4ed8aa4a,0x5b9cca4f,0x682e6ff3,0x748f82ee,0x78a5636f,0x84c87814,0x8cc70208,0x90befffa,0xa4506ceb,0xbef9a3f7,0xc67178f2];
+  const h=[0x6a09e667,0xbb67ae85,0x3c6ef372,0xa54ff53a,0x510e527f,0x9b05688c,0x1f83d9ab,0x5be0cd19],b=Array.from(bytes),bits=b.length*8;
+  b.push(128);while(b.length%64!==56)b.push(0);
+  const high=Math.floor(bits/4294967296),low=bits>>>0;
+  for(const n of [high,low])for(let shift=24;shift>=0;shift-=8)b.push((n>>>shift)&255);
+  const rr=(n,s)=>(n>>>s)|(n<<(32-s)),w=new Array(64);
+  for(let off=0;off<b.length;off+=64){
+    for(let i=0;i<16;i++)w[i]=(b[off+4*i]<<24)|(b[off+4*i+1]<<16)|(b[off+4*i+2]<<8)|b[off+4*i+3];
+    for(let i=16;i<64;i++){const a=w[i-15],c=w[i-2];w[i]=(w[i-16]+(rr(a,7)^rr(a,18)^(a>>>3))+w[i-7]+(rr(c,17)^rr(c,19)^(c>>>10)))|0;}
+    let [a,c,d,e,f,g,j,l]=h;
+    for(let i=0;i<64;i++){const t1=(l+(rr(f,6)^rr(f,11)^rr(f,25))+((f&g)^(~f&j))+k[i]+w[i])|0,t2=((rr(a,2)^rr(a,13)^rr(a,22))+((a&c)^(a&d)^(c&d)))|0;l=j;j=g;g=f;f=(e+t1)|0;e=d;d=c;c=a;a=(t1+t2)|0;}
+    [a,c,d,e,f,g,j,l].forEach((n,i)=>h[i]=(h[i]+n)|0);
+  }
+  return h.map(n=>(n>>>0).toString(16).padStart(8,'0')).join('');
+}
+
+function createBudgetUpdater({fm,keychain,request,bytes,loadModule,uuid}){
+  const cache=fm.joinPath(fm.libraryDirectory(),'BudgetPlannerReleasesV1');
+  if(!fm.fileExists(cache))fm.createDirectory(cache,true);
+  let s={active:null,previous:null,sequence:0,head:null,paused:false,blocked:null}, status='';
+  const validHash=h=>typeof h==='string'&&/^[a-f0-9]{64}$/.test(h);
+  function manifest(m){
+    if(!m||m.schema!==1||m.app!=='budget-planner'||m.dataSchema!==1||m.minLauncher!==1||
+      !Number.isSafeInteger(m.sequence)||m.sequence<1||typeof m.version!=='string'||!/^[\w.+-]{1,40}$/.test(m.version)||
+      !validHash(m.sha256)||!Number.isSafeInteger(m.bytes)||m.bytes<1||m.bytes>500000||
+      m.path!=='releases/'+m.sha256+'.js')throw Error('Invalid Budget Planner manifest.');
+    return m;
+  }
+  if(keychain.contains(KEY)){
+    const saved=JSON.parse(keychain.get(KEY));
+    if(!saved||!Number.isSafeInteger(saved.sequence)||saved.sequence<0||typeof saved.paused!=='boolean'||
+       (saved.head!==null&&!validHash(saved.head))||(saved.blocked!==null&&!validHash(saved.blocked)))throw Error('Invalid saved update settings.');
+    if(saved.active)manifest(saved.active);if(saved.previous)manifest(saved.previous);s=saved;
+  }
+  const save=next=>{keychain.set(KEY,JSON.stringify(next));s=next;};
+  const file=m=>fm.joinPath(cache,m.sha256+'.js');
+  const matches=(m,text)=>{const b=bytes(text);return b.length===m.bytes&&sha256(b)===m.sha256;};
+  const valid=m=>{try{return !!m&&fm.fileExists(file(m))&&matches(m,fm.readString(file(m)));}catch(_){return false;}};
+  async function download(path,timeout){
+    const r=request(ROOT+'/'+path+(path==='manifest.json'?'?check='+Date.now():''));
+    r.timeoutInterval=timeout;r.headers={'Cache-Control':'no-cache'};
+    const text=await r.loadString();
+    if(r.response?.statusCode!==200||typeof text!=='string'||text.length>500000)throw Error('GitHub download unavailable.');
+    return text;
+  }
+  async function update(){
+    if(s.paused)return;
+    let tmp;
+    try{
+      const m=manifest(JSON.parse(await download('manifest.json',3)));
+      if(m.sequence<s.sequence||m.sequence===s.sequence&&m.sha256!==s.head)throw Error('Stale or conflicting release manifest.');
+      if(m.sha256===s.blocked&&valid(s.active)){status='Reverted release skipped';return;}
+      if(m.sha256===s.active?.sha256&&valid(s.active)){
+        if(m.sequence>s.sequence)save({...s,active:m,head:m.sha256,sequence:m.sequence});
+        status='Up to date';return;
+      }
+      const text=await download(m.path,8);
+      if(!matches(m,text))throw Error('Release checksum mismatch.');
+      new Function('module','exports',text);
+      if(!valid(m)){
+        tmp=fm.joinPath(cache,uuid()+'.pending');fm.writeString(tmp,text);
+        if(!matches(m,fm.readString(tmp)))throw Error('Cache verification failed.');
+        if(fm.fileExists(file(m)))fm.remove(file(m));
+        fm.move(tmp,file(m));tmp=null;
+      }
+      save({...s,active:m,previous:valid(s.active)?s.active:s.previous,head:m.sha256,sequence:m.sequence,blocked:null});
+      status='Updated to '+m.version;
+    }catch(e){status='Using cache: '+e.message;if(!valid(s.active)&&!valid(s.previous))throw e;}
+    finally{if(tmp&&fm.fileExists(tmp))fm.remove(tmp);}
+  }
+  const info=()=> (s.active?.version||'Not installed')+' · '+(s.paused?'updates paused':status||'automatic updates on');
+  const canRevert=()=>valid(s.previous)&&s.previous.sha256!==s.active?.sha256;
+  function revert(){if(!canRevert())throw Error('No verified previous release.');save({...s,active:s.previous,previous:s.active,paused:true,blocked:s.active?.sha256||null});}
+  function toggle(){save({...s,paused:!s.paused});}
+  async function run(input){
+    await update();let m=s.active;
+    if(!valid(m)){
+      if(!valid(s.previous))throw Error('No verified release cached. Connect to GitHub and try again.');
+      m=s.previous;save({...s,active:m,previous:null,paused:true,blocked:s.active?.sha256||null});
+    }
+    const app=loadModule(file(m));if(typeof app?.run!=='function')throw Error('Invalid release entry point. Use UPDATE_SETTINGS to revert.');
+    // Never replay a command after app execution starts; it may have written data.
+    await app.run(input);
+  }
+  return {run,info,canRevert,revert,toggle,paused:()=>s.paused};
+}
+try{
+  const updater=createBudgetUpdater({fm:FileManager.local(),keychain:Keychain,request:url=>new Request(url),
+    bytes:s=>Data.fromString(s).getBytes(),loadModule:path=>importModule(path),uuid:()=>UUID.string()});
+  const input=args.shortcutParameter??args.queryParameters?.command??args.notification?.userInfo?.command;
+  const action=typeof input==='string'?input.trim().toUpperCase():'';
+  if(action==='UPDATE_STATUS')Script.setShortcutOutput(updater.info());
+  else if(action==='UPDATE_SETTINGS'){
+    if(!config.runsInApp)Script.setShortcutOutput('Run UPDATE_SETTINGS with Run in App on.');
+    else{
+      const a=new Alert();a.title='Budget Planner Updates';a.message=updater.info()+'\nChanges apply on the next run.';
+      const revert=updater.canRevert();a.addAction(updater.paused()?'Resume automatic updates':'Pause automatic updates');
+      if(revert)a.addAction('Revert to previous release');a.addCancelAction('Close');
+      const pick=await a.presentSheet();if(pick===0)updater.toggle();else if(pick===1&&revert)updater.revert();
+    }
+  }else await updater.run(input);
+}catch(e){
+  const message='Budget Planner: '+(e.message||String(e));
+  Script.setShortcutOutput({apiVersion:1,ok:false,error:message});
+  if(config.runsInApp){const a=new Alert();a.title='Budget Planner';a.message=message;a.addAction('OK');await a.presentAlert();}
+}
+Script.complete();
