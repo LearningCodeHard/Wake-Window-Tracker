@@ -14,10 +14,10 @@ function screen(){
 }
 test('demo UI presents the exact noon schedule and bedtime once',()=>{const s=screen();const t=s.nodes.get('timeline').innerHTML;assert.match(t,/2:00 PM/);assert.match(t,/5:00 PM/);assert.equal((t.match(/8:00 PM/g)||[]).length,1);assert.equal(s.nodes.get('timelineNote').textContent,'Needs Approval');});
 test('test identity stays explicit in demo and folder modes without a demo banner',()=>{
- const s=screen();s.run("S.release={channel:'test',version:'2.0.4'};render()");assert.equal(s.nodes.get('appTitle').textContent,'Graham’s Day Planner');assert.match(s.nodes.get('saveState').textContent,/TEST.*Demo only.*clock 12:00 PM.*no shared writes/);assert.doesNotMatch(html,/id="demoBanner"/);
+ const s=screen();s.run("S.release={channel:'test',version:'2.0.4'};render()");assert.match(html,/<h1 id="appTitle">Graham’s Day Planner<\/h1>/);assert.match(s.nodes.get('saveState').textContent,/TEST.*Demo only.*clock 12:00 PM.*no shared writes/);assert.doesNotMatch(html,/id="demoBanner"/);
  s.run("S.now+=90*60000;render()");assert.match(s.nodes.get('saveState').textContent,/clock 1:30 PM/);
- s.run("S.mode='live';render()");assert.equal(s.nodes.get('appTitle').textContent,'Graham’s Day Planner');assert.match(s.nodes.get('saveState').textContent,/TEST.*Test folder/);
- s.run("S.release.channel='production';render()");assert.equal(s.nodes.get('appTitle').textContent,'Graham’s Day Planner');assert.doesNotMatch(s.nodes.get('saveState').textContent,/TEST|Demo only|Test folder/);
+ s.run("S.mode='live';render()");assert.match(s.nodes.get('saveState').textContent,/TEST.*Test folder/);
+ s.run("S.release.channel='production';render()");assert.doesNotMatch(s.nodes.get('saveState').textContent,/TEST|Demo only|Test folder/);
 });
 test('appointment form sends selected day and captured planning revision',async()=>{
  const s=screen();s.run("S.revisions.planning='plan-r1';awakeSheet()");s.nodes.get('awakeStart').value='14:00';s.nodes.get('awakeEnd').value='14:30';const promise=s.run('saveAwake()'),q=s.context.__queue.shift();assert.equal(q.action,'awakePeriod');assert.equal(q.data.base,'plan-r1');assert.equal(q.data.date,'2026-10-05');assert.equal(q.data.start,'14:00');s.context.receive({id:q.id,message:'Saved'});await promise;
@@ -43,13 +43,20 @@ test('a confirmed save followed by a failed refresh is reported without asking f
 test('new appointments appear inline and unsafe labels are escaped',()=>{
  const s=screen();s.run("S.day.planning={awake:[{id:'a',label:'<script>x</script>',start:WW.wall(S.date,'14:30',S.settings.timezone),end:WW.wall(S.date,'15:00',S.settings.timezone)}],pins:[]};render()");assert.match(s.nodes.get('timeline').innerHTML,/Keep awake/);assert.match(s.nodes.get('timeline').innerHTML,/&lt;script&gt;/);assert.doesNotMatch(s.nodes.get('timeline').innerHTML,/<script>/);
 });
-test('past records are grouped separately from future suggestions',()=>{
- const s=screen();assert.match(s.nodes.get('earlierTimeline').innerHTML,/Recorded nap/);assert.doesNotMatch(s.nodes.get('timeline').innerHTML,/Recorded nap/);
+test('today’s timeline orders actual and proposed events and displays their wake windows',()=>{
+ const s=screen();
+ s.run("S.day.morning=WW.wall(S.date,'09:00',S.settings.timezone);render()");
+ const timeline=s.nodes.get('timeline').innerHTML;
+ assert.ok(timeline.indexOf('Morning wake')<timeline.indexOf('Nap 1'));
+ assert.ok(timeline.indexOf('Nap 1')<timeline.indexOf('Nap 2'));
+ assert.match(timeline,/Nap 1 <span class="tag">Recorded<\/span>[\s\S]*?Previous wake window · 2h/);
+ assert.match(timeline,/Nap 2 <span class="tag">Suggested<\/span>[\s\S]*?Previous wake window · 2h/);
+ assert.match(timeline,/Final wake window/);
 });
 test('concurrent shared plan versions are presented and choosing requires confirmation',()=>{
  const s=screen();s.run("S.day.planningConflict=true;S.planningVersions=[{id:'one',at:'2026-10-05T16:00:00Z',value:{awake:[{id:'a',label:'Parent A appointment',start:WW.wall(S.date,'14:00',S.settings.timezone),end:WW.wall(S.date,'14:30',S.settings.timezone)}],pins:[]}},{id:'two',at:'2026-10-05T16:01:00Z',value:{awake:[{id:'b',label:'Parent B appointment',start:WW.wall(S.date,'15:00',S.settings.timezone),end:WW.wall(S.date,'15:30',S.settings.timezone)}],pins:[]}}];render();planningSheet()");assert.match(s.nodes.get('modalBody').innerHTML,/Parent A appointment/);assert.match(s.nodes.get('modalBody').innerHTML,/Parent B appointment/);s.run("choosePlanningVersion('one')");assert.equal(s.context.__queue.length,0);assert.equal(s.context.pendingDeletion.action,'resolvePlanning');
 });
-test('settings bottom sheet includes editable duration ranges',()=>{const s=screen();s.run('settingsSheet()');assert.equal(s.nodes.get('nap_min').value,'60');assert.equal(s.nodes.get('final_max').value,'180');assert.match(s.nodes.get('modalBody').innerHTML,/Save/);});
+test('settings bottom sheet includes editable duration ranges',()=>{const s=screen();s.run('settingsSheet()');assert.equal(s.nodes.get('nap_min').value,'60');assert.equal(s.nodes.get('final_max').value,'180');assert.match(s.nodes.get('modalActions').innerHTML,/Save Settings/);});
 test('nap editor preserves imported time values',()=>{const s=screen();s.run('napSheet(0)');assert.equal(s.nodes.get('napStart').value,'11:00');assert.equal(s.nodes.get('napEnd').value,'12:00');});
 test('bedtime edit sends the daily override through the bridge',async()=>{const s=screen();s.run('bedtimeSheet()');s.nodes.get('todayBed').value='19:30';const promise=s.run('saveBedtime()');const q=s.context.__queue.shift();assert.equal(q.action,'bedtime');assert.equal(q.data.time,'19:30');s.context.receive({id:q.id,message:'Saved'});await promise;assert.equal(s.nodes.get('modal').classList.contains('open'),false);});
 test('invalid actual data displays an actionable error without crashing UI',()=>{const s=screen();s.run("S.day.naps[0].end='2026-10-05T14:00:00Z';render()");assert.match(s.nodes.get('guidanceText').textContent,/after/);});
@@ -80,10 +87,10 @@ test('deleting a completed nap asks inside the dashboard and cancel leaves it re
  const s=screen();s.run('napSheet(0);deleteNap()');assert.equal(s.nodes.get('modalTitle').textContent,'Delete nap?');assert.equal(s.context.__queue.length,0);assert.match(s.nodes.get('modalBody').innerHTML,/Keep Entry/);s.run('closeSheet()');assert.equal(s.run('S.day.naps.length'),1);assert.equal(s.context.pendingDeletion,null);
 });
 test('confirming deletion sends the saved revision and refreshes the timeline after native save',async()=>{
- const s=screen();s.run('napSheet(0);deleteNap()');const promise=s.run('confirmDeletion()'),q=s.context.__queue.shift();assert.equal(q.action,'deleteNap');assert.equal(q.data.entity,'nap:2026-10-05:sample');assert.equal(q.data.base,'demo');assert.equal(q.data.date,'2026-10-05');const snapshot=s.run('JSON.parse(JSON.stringify(S))');snapshot.day.naps=[];s.context.receive({id:q.id,message:'Nap deleted',snapshot});await promise;assert.doesNotMatch(s.nodes.get('timeline').innerHTML,/Recorded nap/);assert.equal(s.nodes.get('napTotal').textContent,'0 completed · 0m');assert.equal(s.nodes.get('modal').classList.contains('open'),false);
+ const s=screen();s.run('napSheet(0);deleteNap()');const promise=s.run('confirmDeletion()'),q=s.context.__queue.shift();assert.equal(q.action,'deleteNap');assert.equal(q.data.entity,'nap:2026-10-05:sample');assert.equal(q.data.base,'demo');assert.equal(q.data.date,'2026-10-05');const snapshot=s.run('JSON.parse(JSON.stringify(S))');snapshot.day.naps=[];s.context.receive({id:q.id,message:'Nap deleted',snapshot});await promise;assert.doesNotMatch(s.nodes.get('timeline').innerHTML,/>Recorded<\/span>/);assert.equal(s.nodes.get('napTotal').textContent,'0 completed · 0m');assert.equal(s.nodes.get('modal').classList.contains('open'),false);
 });
 test('active nap cancellation removes the active entity only after explicit confirmation',async()=>{
- const s=screen();asleep(s);s.run('activeNapSheet(1);deleteNap()');assert.equal(s.context.__queue.length,0);const promise=s.run('confirmDeletion()'),q=s.context.__queue.shift();assert.equal(q.data.entity,'nap:2026-10-05:active');assert.equal(q.data.base,'r1');const snapshot=s.run('JSON.parse(JSON.stringify(S))');snapshot.day.naps.pop();s.context.receive({id:q.id,message:'Nap deleted',snapshot});await promise;assert.equal(s.nodes.get('endActive').hidden,true);assert.doesNotMatch(s.nodes.get('timeline').innerHTML,/Current nap/);
+ const s=screen();asleep(s);s.run('activeNapSheet(1);deleteNap()');assert.equal(s.context.__queue.length,0);const promise=s.run('confirmDeletion()'),q=s.context.__queue.shift();assert.equal(q.data.entity,'nap:2026-10-05:active');assert.equal(q.data.base,'r1');const snapshot=s.run('JSON.parse(JSON.stringify(S))');snapshot.day.naps.pop();s.context.receive({id:q.id,message:'Nap deleted',snapshot});await promise;assert.equal(s.nodes.get('endActive').hidden,true);assert.doesNotMatch(s.nodes.get('timeline').innerHTML,/In progress/);
 });
 test('stale deletion remains visible and does not pretend the nap was removed',async()=>{
  const s=screen();s.run('napSheet(0);deleteNap()');const promise=s.run('confirmDeletion()'),q=s.context.__queue.shift();s.context.receive({id:q.id,error:'This entry changed on another phone. Refresh and try again.'});await promise;assert.match(s.nodes.get('modalError').textContent,/another phone/);assert.equal(s.nodes.get('modal').classList.contains('open'),true);assert.equal(s.run('S.day.naps.length'),1);
@@ -123,7 +130,7 @@ test('footer navigation is direct and status is last after every page control',(
  const footer=html.match(/<footer>([\s\S]*?)<\/footer>/)[1];
  assert.match(footer,/onclick="morningSheet\(\)">Morning Wake/);assert.match(footer,/onclick="bedtimeSheet\(\)">Change Bedtime/);assert.match(footer,/onclick="updatesSheet\(\)">Updates/);assert.match(footer,/onclick="refresh\(\)">Refresh/);
  assert.ok(footer.lastIndexOf('</button>')<footer.indexOf('id="saveState"'));assert.ok(footer.indexOf('id="operationState"')>footer.indexOf('id="saveState"'));assert.doesNotMatch(footer,/Plan Details|Day Adjustments/);
- const s=screen();assert.equal(s.nodes.get('timelineTitle').textContent,'Rest of Today');s.run('addSheet()');assert.doesNotMatch(s.nodes.get('modalBody').innerHTML,/morningSheet|Morning Wake/);assert.match(s.nodes.get('modalBody').innerHTML,/awakeSheet/);assert.match(s.nodes.get('modalBody').innerHTML,/activeNapSheet\(\)">Start Nap/);assert.match(s.nodes.get('modalBody').innerHTML,/napSheet\(\)">Log Completed Nap/);assert.doesNotMatch(s.nodes.get('modalBody').innerHTML,/napAction|Start or Log Nap/);
+ const s=screen();assert.equal(s.nodes.get('timelineTitle').textContent,'Today’s Plan');s.run('addSheet()');assert.doesNotMatch(s.nodes.get('modalBody').innerHTML,/morningSheet|Morning Wake/);assert.match(s.nodes.get('modalBody').innerHTML,/awakeSheet/);assert.match(s.nodes.get('modalBody').innerHTML,/activeNapSheet\(\)">Start Nap/);assert.match(s.nodes.get('modalBody').innerHTML,/napSheet\(\)">Log Completed Nap/);assert.doesNotMatch(s.nodes.get('modalBody').innerHTML,/napAction|Start or Log Nap/);
 });
 test('Updates presents every installed control directly and preserves the open app after a preference change',async()=>{
  const s=screen();s.run('updatesSheet()');assert.match(s.nodes.get('modalBody').innerHTML,/probeSheet\(\)">Two-Phone Check/);assert.doesNotMatch(s.nodes.get('modalBody').innerHTML,/openUpdateControls|Update Controls/);
@@ -159,8 +166,26 @@ test('recalculating and cancelling does not overwrite approval or issue a save',
  const s=screen();
  s.run("S.approved=WW.approval.saveApproval(S,currentPlan,clock());render();recalculate()");
  assert.match(s.nodes.get('modalBody').innerHTML,/Tradeoffs/);
- assert.match(s.nodes.get('modalBody').innerHTML,/Keep Current/);
+ assert.match(s.nodes.get('modalActions').innerHTML,/Keep Current/);
+ assert.match(s.nodes.get('modalBody').innerHTML,/Approved bedtime<\/dt><dd>8:00 PM/);
+ s.run("updateBedtimePreview(Date.parse(WW.wall(S.date,'19:30',S.settings.timezone)))");
+ assert.match(s.nodes.get('bedtimePreview').innerHTML,/Selected bedtime<\/dt><dd>7:30 PM/);
+ assert.match(s.nodes.get('bedtimePreview').innerHTML,/30m earlier/);
  s.run('closeSheet()');
  assert.equal(s.context.__queue.length,0);
  assert.equal(s.nodes.get('timelineNote').textContent,'Approved');
+});
+
+test('a bedtime change opens actionable revision review and preserves approved times',()=>{
+ const s=screen();
+ s.run("S.approved=WW.approval.saveApproval(S,currentPlan,clock());S.day.bedtime='19:30';render();reviewSchedule()");
+ assert.equal(s.nodes.get('guidanceTitle').textContent,'Adjustment Needed');
+ assert.match(s.nodes.get('guidanceText').textContent,/bedtime/i);
+ assert.match(s.nodes.get('guidanceActions').innerHTML,/reviewSchedule/);
+ assert.equal(s.nodes.get('modalTitle').textContent,'Adjustment Needed');
+ assert.match(s.nodes.get('modalBody').innerHTML,/Recommended adjustments/);
+ assert.match(s.nodes.get('modalBody').innerHTML,/Approved bedtime<\/dt><dd>8:00 PM/);
+ assert.equal(s.nodes.get('bedtimeMetricLabel').textContent,'Approved bedtime');
+ assert.equal(s.nodes.get('bedtimeMetric').textContent,'8:00 PM');
+ assert.equal(s.context.__queue.length,0);
 });

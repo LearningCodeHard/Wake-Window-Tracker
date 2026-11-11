@@ -1,15 +1,25 @@
 /* Quiet timeline and V2 planning controls. Existing actual-event forms stay in ui.js. */
 function dayPlanning(){return S.day.planning||{awake:[],pins:[]};}
 function futurePins(){return dayPlanning().pins.filter(p=>p.ordinal>S.day.naps.length||p.anchors.some((id,i)=>!S.day.naps[i]||WW.napIdentity(S.day.naps[i])!==id));}
-function eventRow(title,sub,start,end,click='',classes='',tag=''){
-  return `<div class="event ${classes}"><div class="event-title">${esc(title)}${tag?` <span class="tag">${esc(tag)}</span>`:''}</div><button${click?` onclick="${esc(click)}"`:' disabled'}><span class="event-time">${esc(fmt(start))}${end?'–'+esc(fmt(end)):''}</span><span class="event-sub">${esc(sub)}</span></button></div>`;
+const eventSymbols={wake:'☀',nap:'zZ',appointment:'◷',bedtime:'☾'};
+function eventRow(title,sub,start,end,click,kind,tag='',wake=''){
+  return `<button class="event event-${kind}" onclick="${esc(click)}">
+    <span class="event-symbol" aria-hidden="true">${eventSymbols[kind]}</span>
+    <span class="event-copy">
+      <span class="event-title">${esc(title)}${tag?` <span class="tag">${esc(tag)}</span>`:''}</span>
+      <span class="event-time">${esc(fmt(start))}${end?'–'+esc(fmt(end)):''}${sub?` · ${esc(sub)}`:''}</span>
+      ${wake?`<span class="event-wake">${esc(wake)}</span>`:''}
+    </span>
+    <span class="event-arrow" aria-hidden="true">›</span>
+  </button>`;
 }
 function render(){
-  $('viewDate').value=S.date;$('dateText').textContent=new Intl.DateTimeFormat('en-US',{timeZone:S.settings.timezone,weekday:'long',month:'long',day:'numeric'}).format(new Date(WW.wall(S.date,'12:00',S.settings.timezone)));
-  $('appTitle').textContent='Graham’s Day Planner';
+  $('viewDate').value=S.date;
+  $('dateText').textContent=new Intl.DateTimeFormat('en-US',{timeZone:S.settings.timezone,weekday:'long',month:'long',day:'numeric'}).format(new Date(WW.wall(S.date,'12:00',S.settings.timezone)));
   $('demoAdvance').hidden=S.mode!=='demo';
   const d=S.day,completed=d.naps.filter(n=>n.end!==null),active=d.naps.find(n=>n.end===null),historical=S.date!==WW.parts(clock(),S.settings.timezone).date;
   const total=Math.round(completed.reduce((a,n)=>a+(Date.parse(n.end)-Date.parse(n.start))/60000,0));
+  const target=WW.wall(S.date,d.bedtime||S.settings.bedtime,S.settings.timezone);
   let p,review;
   try{
     WW.validateDay(d,S.settings,clock());
@@ -18,56 +28,70 @@ function render(){
   }catch(e){p={status:'error',events:[],message:e.message};review={};}
   currentPlan=p;
   const last=d.naps[d.naps.length-1],anchor=Date.parse(last?.end||d.morning);
-  const warnings=[...(S.warnings||[]),...(review.proposal?.notes||p.notes||[])];if((S.conflicts||[]).length)warnings.push('Conflicting edits were found. Review the displayed entries and save again to acknowledge the latest revision.');
-  if(historical)warnings.push('Viewing another date. Actual records and saved appointments are shown; future suggestions are hidden.');
+  const warnings=[...(S.warnings||[]),...(review.proposal?.notes||p.notes||[])];
+  if((S.conflicts||[]).length)warnings.push('Conflicting edits were found. Review the displayed entries and save again to acknowledge the latest revision.');
+  if(historical)warnings.push('Viewing another date. Actual records and saved appointments are shown.');
   $('notice').hidden=!warnings.length;$('notice').textContent=warnings.join(' ');
+  $('scheduleStatus').hidden=!review.status;
+  $('scheduleStatus').dataset.status=review.status||'';
+  $('timelineNote').textContent=review.status||'';
+  $('scheduleSummary').textContent=review.saved?'Approved times stay fixed until you approve a revision.':
+    review.status==='Needs Approval'?'Review the suggested times before saving.':'';
+  $('dayMetrics').hidden=historical;
+  $('morningMetric').textContent=d.morning?fmt(d.morning):'—';
+  $('napMetric').textContent=p.totalNaps==null?`${d.naps.length} logged`:`${p.totalNaps} / ${WW.napCounts(S.settings).target} target`;
+  $('bedtimeMetricLabel').textContent=review.saved?'Approved bedtime':p.bedtime?'Proposed bedtime':'Bedtime target';
+  $('bedtimeMetric').textContent=fmt(p.bedtime||target);
+  $('currentPanel').hidden=historical;
   $('endActive').hidden=!active||historical;
   const sleeping=!!active&&!historical;
-  $('currentState').textContent=historical?'Recorded day':sleeping?`Sleeping · ${dur(Math.max(0,Math.floor((clock()-Date.parse(active.start))/60000)))}`:Number.isFinite(anchor)?`Awake · ${dur(Math.max(0,Math.floor((clock()-anchor)/60000)))}`:'Ready to plan';
-  $('currentSince').textContent=sleeping?`Since ${fmt(active.start)}`:Number.isFinite(anchor)&&!historical?`Since ${fmt(anchor)}`:'Add a morning wake or nap';
-  $('timelineTitle').textContent=historical?'Recorded Day':'Rest of Today';$('timelineNote').textContent=historical?'Actual':review.status||'Suggested';
-  const events=[],earlier=[];
-  if(d.morning)earlier.push(eventRow('Morning Wake','Actual · tap to edit',d.morning,null,'morningSheet()','actual'));
+  $('currentState').textContent=sleeping?`Sleeping · ${dur(Math.max(0,Math.floor((clock()-Date.parse(active.start))/60000)))}`:Number.isFinite(anchor)?`Awake · ${dur(Math.max(0,Math.floor((clock()-anchor)/60000)))}`:'Ready to plan';
+  $('currentSince').textContent=sleeping?`Since ${fmt(active.start)}`:Number.isFinite(anchor)?`Since ${fmt(anchor)}`:'Add a morning wake or nap';
+  $('timelineTitle').textContent=historical?'Recorded Day':'Today’s Plan';
+  const events=[];
+  const addEvent=(title,sub,start,end,click,kind,tag,wake)=>events.push({at:+new Date(start),html:eventRow(title,sub,start,end,click,kind,tag,wake)});
+  if(d.morning)addEvent('Morning wake','',d.morning,null,'morningSheet()','wake','Recorded');
   let previous=d.morning;
   d.naps.forEach((n,i)=>{
-    const wake=previous?` · Previous wake ${dur(Math.round((Date.parse(n.start)-Date.parse(previous))/60000))}`:'';
-    const details=n.end?`${dur(Math.round((Date.parse(n.end)-Date.parse(n.start))/60000))} · actual${wake}`:`Actual start · estimated end${wake}`;
-    earlier.push(eventRow(n.end?`Recorded nap ${i+1}`:'Nap in progress',details,n.start,n.end||n.expectedEnd,n.end?`napSheet(${i})`:`activeNapSheet(${i})`,'actual'));
-    if(!n.end&&!historical)events.push({at:Date.parse(n.expectedEnd),html:eventRow('Expected wake','Current nap · estimated end'+wake,n.expectedEnd,null,`activeNapSheet(${i})`,'current')});
+    const wake=previous?`Previous wake window · ${dur(Math.round((Date.parse(n.start)-Date.parse(previous))/60000))}`:'';
+    const details=n.end?dur(Math.round((Date.parse(n.end)-Date.parse(n.start))/60000)):'estimated end';
+    addEvent(`Nap ${i+1}`,details,n.start,n.end||n.expectedEnd,n.end?`napSheet(${i})`:`activeNapSheet(${i})`,'nap',n.end?'Recorded':'In progress',wake);
     previous=n.end;
   });
-  for(const a of dayPlanning().awake){const html=eventRow(a.label||'Awake period','No planned sleep during this time',a.start,a.end,`awakeSheet(${JSON.stringify(a.id)})`,'appointment','Keep awake');if(!historical&&Date.parse(a.end)>clock())events.push({at:Date.parse(a.start),html});else earlier.push(html);}
+  for(const a of dayPlanning().awake)addEvent(a.label||'Awake period','',a.start,a.end,`awakeSheet(${JSON.stringify(a.id)})`,'appointment','Keep awake');
   if(!historical){
-    let next=true;
     p.events.forEach((e,i)=>{
       if(e.kind!=='nap'||e.ordinal<=d.naps.length)return;
-      const before=p.events[i-1],overdue=e.start<clock();
-      const details=`${dur(e.minutes)} sleep${before?' · Previous wake '+dur(before.minutes):''}`;
-      events.push({at:e.start,html:eventRow(`${review.saved?'Planned':'Suggested'} nap ${e.ordinal}`,details,e.start,e.end,
-        `pinSheet(${e.ordinal})`,next?'next':'',overdue?'Overdue':e.pinned?'Pinned':'')});
-      next=false;
+      const before=p.events[i-1];
+      addEvent(`Nap ${e.ordinal}`,dur(e.minutes),e.start,e.end,`pinSheet(${e.ordinal})`,'nap',
+        e.start<clock()?'Overdue':e.pinned?'Pinned':review.saved?'Planned':'Suggested',
+        before?`Previous wake window · ${dur(before.minutes)}`:'');
     });
     if(p.bedtime){
       const final=p.events[p.events.length-1];
-      const details=[bedtimeTradeoff(p),final?'Final wake '+dur(final.minutes):''].filter(Boolean).join(' · ');
-      events.push({at:p.bedtime,html:eventRow('Bedtime',details,p.bedtime,null,'bedtimeSheet()')});
+      addEvent('Bedtime',p.deviation?bedtimeTradeoff(p):'',p.bedtime,null,'bedtimeSheet()','bedtime',review.saved?'Planned':'Suggested',
+        final?`Final wake window · ${dur(final.minutes)}`:'');
+    }else{
+      const paused=['blocked','active-overdue'].includes(p.status);
+      addEvent('Bedtime target',paused?'Planning paused':'',target,null,'bedtimeSheet()','bedtime');
     }
-    else events.push({at:Date.parse(WW.wall(S.date,d.bedtime||S.settings.bedtime,S.settings.timezone)),html:eventRow('Bedtime target',p.status==='blocked'||p.status==='active-overdue'?'Planning paused · review below':'Choose your target for this day',WW.wall(S.date,d.bedtime||S.settings.bedtime,S.settings.timezone),null,'bedtimeSheet()')});
   }
-  $('timeline').innerHTML=historical?earlier.join('')||'<p class="empty">No recorded events.</p>':events.sort((a,b)=>a.at-b.at).map(e=>e.html).join('');
-  $('earlierTimeline').innerHTML=earlier.join('')||'<p class="empty">No earlier records yet.</p>';$('earlierDetails').hidden=historical;
+  $('timeline').innerHTML=events.sort((a,b)=>a.at-b.at).map(e=>e.html).join('')||'<p class="empty">No recorded events.</p>';
   $('napTotal').textContent=`${completed.length} completed · ${dur(total)}`;
-  const proposal=review.proposal,attention=!historical&&(review.reasons?.length||review.overdue||review.expired||['blocked','adjust','active-overdue','error'].includes(proposal?.status||p.status));
+  const proposal=review.proposal;
+  const attention=!historical&&(review.reasons?.length||review.overdue||review.expired||['blocked','adjust','active-overdue','error'].includes(proposal?.status||p.status));
   $('guidance').hidden=!attention;
   $('guidanceTitle').textContent=proposal?.status==='active-overdue'?'Update Expected Wake':review.status||'Adjustment Needed';
   $('guidanceText').textContent=[...(review.reasons||[]),review.overdue,
-    review.expired?'A proposed transition has passed. Use Recalculate for options from the current time.':proposal?.message||p.message,
-    review.saved&&proposal?.bedtime?`Approved ${fmt(review.saved.bedtime)} · Proposed ${fmt(proposal.bedtime)}.`:''
+    review.expired?'A proposed transition has passed. Use Recalculate for options from the current time.':proposal?.message||p.message
   ].filter(Boolean).join(' ');
-  $('planControls').hidden=historical||!review.status;
-  $('planActions').innerHTML=review.conflict?'<button class="primary" onclick="approvalConflictSheet()">Review Approvals</button>':
-    `${proposal?.bedtime&&!review.expired?'<button class="primary" onclick="reviewSchedule()">'+(review.saved?'Review Proposed Plan':'Approve Plan')+'</button>':''}
-    ${review.status?'<button class="small-btn" onclick="recalculate()">Recalculate</button>':''}`;
+  $('guidanceActions').innerHTML=review.conflict?'<button class="primary" onclick="approvalConflictSheet()">Review Approvals</button>':
+    proposal?.status==='active-overdue'&&active?'<button class="primary" onclick="activeNapSheet(activeIndex())">Update Expected Wake</button>':
+    proposal?.bedtime&&!review.expired?`<button class="primary" onclick="reviewSchedule()">Review ${fmt(proposal.bedtime)} Proposal</button>`:
+    '<button class="small-btn" onclick="planningSheet()">Review Adjustments</button><button class="small-btn" onclick="settingsSheet()">Review Settings</button>';
+  $('planControls').hidden=historical||!review.status||review.conflict;
+  $('planActions').innerHTML=`${proposal?.bedtime&&!review.expired&&!attention?'<button class="primary" onclick="reviewSchedule()">Approve Plan</button>':''}
+    <button class="small-btn" onclick="recalculate()">Recalculate</button>`;
   const release=S.release?`${S.release.version} · ${S.release.channel.toUpperCase()} · `:'Manual · ';
   $('saveState').textContent=release+(S.mode==='demo'?`Demo only · clock ${fmt(clock())} · no shared writes`:`${S.release&&S.release.channel==='test'?'Test folder · ':''}Shared files read on this phone at ${fmt(S.checkedAt)}.${S.lastSavedAt?' Last local save '+fmt(S.lastSavedAt)+'.':''} Refresh the other phone to read shared changes.`);
   $('operationState').textContent=lastOperation;
@@ -152,15 +176,31 @@ function bedtimeTradeoff(plan){
 function optionCard(plan,label,index=null){
   const rows=plan.events.map((e,i)=>{
     if(e.kind!=='nap')return '';
-    return `<li><strong>Nap ${e.ordinal}</strong> · ${fmt(e.start)}–${fmt(e.end)}<br>
-      ${dur(e.minutes)} · ${esc(e.profile||'standard')}<br>Previous wake · ${dur(plan.events[i-1].minutes)}</li>`;
+    return `<li><strong>Nap ${e.ordinal} · ${dur(e.minutes)}</strong><span>${fmt(e.start)}–${fmt(e.end)} · ${esc(e.profile||'standard')}</span><span>Previous wake window · ${dur(plan.events[i-1].minutes)}</span></li>`;
   }).join('');
   const count=plan.totalNaps,desired=WW.napCounts(S.settings).target;
   const profiles=plan.events.filter(e=>e.kind==='nap').map(e=>e.profile||'standard');
   const lengths=[...new Set(profiles)].map(name=>`${profiles.filter(p=>p===name).length} ${name}`).join(', ');
-  return `<div class="plan-option"><label class="option-label">${index===null?'':`<input type="radio" name="schedule-option" value="${index}" ${index===0?'checked':''}>`}<strong>${esc(label)}</strong></label>
+  const last=plan.events[plan.events.length-1];
+  const radio=index===null?'':`<input id="option-${index}" type="radio" name="schedule-option" value="${index}" ${index===0?'checked':''} onchange="updateBedtimePreview(${plan.bedtime})">`;
+  return `<article class="plan-option">${radio}
+    ${index===null?`<strong class="option-label">${esc(label)}</strong>`:
+      `<label class="option-label" for="option-${index}"><strong>${esc(label)}</strong>${index===0?'<span class="tag">Recommended</span>':''}</label>`}
     <div class="option-grid"><div><strong>${count} ${count===1?'nap':'naps'} · ${fmt(plan.bedtime)}</strong>${rows?`<ul class="option-naps">${rows}</ul>`:'<p>No remaining naps</p>'}</div>
-    <div><strong>Tradeoffs</strong><ul><li>${esc(bedtimeTradeoff(plan))}</li><li>${count===desired?'Meets nap target':`${Math.abs(count-desired)} ${count<desired?'below':'above'} nap target`}</li>${lengths?`<li>Remaining naps · ${esc(lengths)}</li>`:''}<li>Final wake · ${dur(plan.events[plan.events.length-1].minutes)}</li></ul></div></div></div>`;
+    <div class="option-tradeoffs"><strong>Tradeoffs</strong><ul>
+      <li>${esc(bedtimeTradeoff(plan))}</li><li>${count===desired?'Meets nap target':`${Math.abs(count-desired)} ${count<desired?'below':'above'} nap target`}</li>
+      ${lengths?`<li>Remaining naps · ${esc(lengths)}</li>`:''}${last?`<li>Final wake window · ${dur(last.minutes)}</li>`:''}</ul></div></div>
+  </article>`;
+}
+function bedtimePreview(approved,proposed){
+  const change=Math.round((proposed-approved)/60000);
+  return `<dt>Approved bedtime</dt><dd>${fmt(approved)}</dd>
+    <dt>Selected bedtime</dt><dd>${fmt(proposed)}</dd>
+    <dt>Change</dt><dd>${change?`${dur(Math.abs(change))} ${change>0?'later':'earlier'}`:'Same time'}</dd>`;
+}
+function updateBedtimePreview(proposed){
+  const preview=$('bedtimePreview');
+  if(preview&&displayedReview?.saved)preview.innerHTML=bedtimePreview(displayedReview.saved.bedtime,proposed);
 }
 function reviewSchedule(){
   const review=displayedReview;
@@ -176,19 +216,24 @@ function showOptions(options,generatedAt,compare){
   const available=options.filter(p=>p.bedtime);
   openOptions={date:S.date,signature:WW.approval.signature(S),generatedAt,compare};
   const review=displayedReview;
-  const impact=review?.saved?`<p>Approved bedtime · ${fmt(review.saved.bedtime)} · Target ${fmt(WW.wall(S.date,S.day.bedtime||S.settings.bedtime,S.settings.timezone))}</p>`:'';
-  const why=review?.reasons.length?`<p>${esc(review.reasons.join(' '))}</p>`:'';
+  const adjusting=!!(review?.reasons.length||available[0]?.deviation);
+  const why=review?.reasons.length?review.reasons.join(' '):'';
   if(!available.length){
-    openSheet('Adjustment Needed',`${why}${impact}<p>${esc(options[0].message)}</p><div class="toolbar"><button class="small-btn" onclick="planningSheet()">Review Adjustments</button><button class="small-btn" onclick="settingsSheet()">Settings</button></div>`);
+    openSheet('Adjustment Needed',`<div class="review-warning"><h3>Schedule could not be calculated</h3><p>${esc([why,options[0].message].filter(Boolean).join(' '))}</p></div>
+      <div class="toolbar"><button class="small-btn" onclick="planningSheet()">Review Appointments and Pins</button><button class="small-btn" onclick="settingsSheet()">Review Nap and Wake Settings</button></div>`);
     return;
   }
   const canApprove=!(S.conflicts||[]).length;
-  openSheet(compare?'Schedule Alternatives':'Review Schedule',why+impact+
-    available.map((p,i)=>optionCard(p,i===0?'Recommended':`Option ${i+1}`,i)).join('')+
-    `<div class="sheet-actions"><button onclick="closeSheet()">${review?.saved?'Keep Current':'Cancel'}</button>
-    <button class="save" onclick="approveOption()" ${canApprove?'':'disabled'}>${compare?'Approve Selected':'Approve Plan'}</button></div>
-    <div class="toolbar"><button class="small-btn" onclick="recalculate()">${compare?'Recalculate':'View Alternatives'}</button><button class="small-btn" onclick="reloadSchedule()">Refresh Shared Day</button></div>
-    ${canApprove?'':'<p>Refresh and review conflicting edits before approving.</p>'}`);
+  const summary=adjusting?`<div class="review-warning"><h3>${available[0].deviation?'Bedtime target needs adjustment':'Schedule inputs changed'}</h3>
+    <p>${esc([why,available[0].deviation?available[0].message:''].filter(Boolean).join(' '))}</p></div>`:'';
+  const preview=review?.saved?`<section class="change-preview"><h3>Change preview</h3><dl id="bedtimePreview" aria-live="polite">${bedtimePreview(review.saved.bedtime,available[0].bedtime)}</dl></section>`:'';
+  openSheet(compare?'Schedule Alternatives':adjusting?'Adjustment Needed':'Review Schedule',
+    summary+(adjusting?'<h3 class="option-heading">Recommended adjustments</h3>':'')+
+    available.map((p,i)=>optionCard(p,`Option ${i+1}`,i)).join('')+preview+
+    `<div class="toolbar"><button class="small-btn" onclick="recalculate()">${compare?'Recalculate':'View Alternatives'}</button><button class="small-btn" onclick="reloadSchedule()">Refresh Shared Day</button></div>
+    ${canApprove?'':'<p>Refresh and review conflicting edits before approving.</p>'}`,
+    `<button onclick="closeSheet()">${review?.saved?'Keep Current':'Cancel'}</button>
+    <button class="save" onclick="approveOption()" ${canApprove?'':'disabled'}>${compare?'Approve Selected':'Approve Plan'}</button>`);
 }
 async function reloadSchedule(){await act('load',{date:S.date});}
 async function approveOption(){

@@ -10,7 +10,7 @@ function request(action,data={}){return new Promise((resolve,reject)=>{const id=
 window.receive=function(r){if(r.snapshot){S=r.snapshot;render();}const p=pending[r.id];delete pending[r.id];if(p){if(r.error){const e=Error((r.saveConfirmed?'Save confirmed locally; updated view could not be read. ':'')+r.error);e.saveConfirmed=!!r.saveConfirmed;p.reject(e);}else p.resolve(r);}};
 async function act(action,data={},close=true){document.body.classList.add('native-busy');lastOperation=action==='load'?'Reading shared files on this phone…':'Saving on this phone…';$('operationState').textContent=lastOperation;try{const r=await request(action,data);lastOperation=action==='load'?'Read completed.':r.saveConfirmed?'Save confirmed on this phone.':'No new write was needed.';if(close)closeSheet();if(r.message)toast(r.message);return r;}catch(e){lastOperation=(e.saveConfirmed?'':'Not confirmed: ')+e.message+' Refresh before retrying a save.';$('modalError').textContent=e.message;toast(e.message);return null;}finally{document.body.classList.remove('native-busy');$('operationState').textContent=lastOperation;}}
 function connectionStopped(message){lastOperation=message+' A pending save may have succeeded; reopen and check before repeating it.';$('operationState').textContent=lastOperation;for(const id of Object.keys(pending)){pending[id].reject(Error(lastOperation));delete pending[id];}document.body.classList.remove('native-busy');toast(lastOperation);}
-function openSheet(title,body){lastFocus=document.activeElement;$('modalTitle').textContent=title;$('modalBody').innerHTML=body;$('modalError').textContent='';$('backdrop').classList.add('open');$('modal').classList.add('open');document.body.classList.add('sheet-open');$('modalScroll').scrollTop=0;}
+function openSheet(title,body,actions=''){lastFocus=document.activeElement;$('modalTitle').textContent=title;$('modalBody').innerHTML=body;$('modalActions').innerHTML=actions;$('modalActions').hidden=!actions;$('modalError').textContent='';$('backdrop').classList.add('open');$('modal').classList.add('open');document.body.classList.add('sheet-open');$('modalScroll').scrollTop=0;}
 function closeSheet(){window.pendingDeletion=null;$('backdrop').classList.remove('open');$('modal').classList.remove('open');document.body.classList.remove('sheet-open');if(lastFocus)lastFocus.focus();}
 document.addEventListener('keydown',e=>{if(e.key==='Escape')closeSheet();});
 function field(label,id,type,value){
@@ -60,14 +60,37 @@ const durationLabels={short:'Short nap',nap:'Standard nap',long:'Long nap',first
 function settingsSheet(){
   window.settingsBase=S.revisions.settings;
   const counts=WW.napCounts(S.settings),profiles=WW.napProfiles(S.settings);
-  let content='<h3>Shared Defaults</h3><div class="form-grid">'+field('Default bedtime','defaultBed','time',S.settings.bedtime)+field('Household timezone','timezone','text',S.settings.timezone)+'</div>';
-  content+='<h3>Daily naps</h3><div class="form-grid">'+field('Target naps','napTarget','number',counts.target)+field('Maximum naps','napMax','number',counts.max)+'</div><p>The maximum includes recorded and active naps.</p>';
-  for(const [key,label] of Object.entries(durationLabels)){
+  const rangeFields=keys=>keys.map(key=>{
     const range=profiles[key]||S.settings[key];
-    content+=`<div class="setting-group"><h3>${label} · minutes</h3><div class="triple">${['min','ideal','max'].map((x,i)=>field(['Minimum','Preferred','Maximum'][i],key+'_'+x,'number',range[x])).join('')}</div></div>`;
-  }
-  content+='<p>At 7:00 AM or later, the first wake window uses the second window’s range. Nap changes over 10 minutes prompt a new proposal for approval.</p>';
-  openSheet('Settings',content+saveButtons('saveSettings()')+'<h3>Appointments and Nap Pins</h3>'+planningControls());
+    return `<div class="setting-group"><h4>${durationLabels[key]}</h4><div class="triple">${['min','ideal','max'].map((x,i)=>
+      field(['Minimum','Preferred','Maximum'][i],key+'_'+x,'number',range[x])).join('')}</div></div>`;
+  }).join('');
+  const content=`<section class="settings-section">
+    <h3>Daily naps</h3>
+    <div class="settings-card"><div class="triple setting-pair">
+      ${field('Target naps','napTarget','number',counts.target)}${field('Maximum naps','napMax','number',counts.max)}
+    </div><p>The maximum includes recorded and active naps.</p></div>
+  </section>
+  <section class="settings-section"><h3>Nap duration profiles <span>Minutes</span></h3>
+    <div class="settings-card">${rangeFields(['short','nap','long'])}<p>The planner selects a profile automatically. Tap a planned nap to override it.</p></div>
+  </section>
+  <section class="settings-section"><h3>Wake windows <span>Minutes</span></h3>
+    <div class="settings-card">${rangeFields(['first','second','later','final'])}
+      <p>At 7:00 AM or later, the first window uses the second window’s range.</p></div>
+  </section>
+  <section class="settings-section"><h3>Schedule control</h3>
+    <dl class="settings-card rules">
+      <dt>Nap timing tolerance</dt><dd>10 minutes</dd>
+      <dt>Schedule revisions</dt><dd>Approval required</dd>
+      <dt>Missed planned naps</dt><dd>Overdue warning</dd>
+    </dl>
+  </section>
+  <section class="settings-section"><h3>Shared defaults</h3>
+    <div class="settings-card form-grid">${field('Default bedtime','defaultBed','time',S.settings.bedtime)}${field('Household timezone','timezone','text',S.settings.timezone)}</div>
+  </section>
+  <section class="settings-section"><h3>Appointments and Nap Pins</h3>${planningControls()}</section>`;
+  openSheet('Planner Settings',content,'<button onclick="closeSheet()">Cancel</button><button class="save" onclick="saveSettings()">Save Settings</button>');
+
 }
 async function saveSettings(){
   const settings={timezone:$('timezone').value.trim(),bedtime:$('defaultBed').value};

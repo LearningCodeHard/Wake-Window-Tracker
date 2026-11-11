@@ -54,7 +54,7 @@ const {chromium}=require('playwright');
  const command=await page.evaluate(()=>window.__queue.shift());assert.equal(command.action,'awakePeriod');assert.equal(command.data.end,'14:45');assert.equal(command.data.base,'plan-r1');
  await page.evaluate(id=>receive({id,error:'Simulated stale plan'}),command.id);assert.match(await page.locator('#modalError').textContent(),/stale/);assert.equal(await page.locator('#awakeEnd').inputValue(),'14:45');await page.evaluate(()=>closeSheet());
  await page.evaluate(()=>{S.day.planning.pins[0].start=WW.wall(S.date,'17:00',S.settings.timezone);render();});
- assert.equal(await page.locator('#guidance').isVisible(),true);assert.match(await page.locator('#guidanceText').textContent(),/No schedule/);assert.equal(await page.locator('#timeline').textContent().then(t=>t.includes('Suggested nap')),false);
+ assert.equal(await page.locator('#guidance').isVisible(),true);assert.match(await page.locator('#guidanceText').textContent(),/No schedule/);assert.equal(await page.locator('#timeline .tag').filter({hasText:'Suggested'}).count(),0);
  await page.evaluate(()=>{S.day.planning.pins=[];S.day.naps[1].end=WW.wall(S.date,'13:20',S.settings.timezone);delete S.day.naps[1].expectedEnd;S.now=Date.parse(WW.wall(S.date,'13:30',S.settings.timezone));render();});
  assert.match(await page.locator('#currentState').textContent(),/Awake · 10m/);assert.deepEqual(errors,[]);
  await browser.close();console.log(JSON.stringify({renderChecks:results,timeSelectors:'all visible',staleEdit:'kept draft',conflict:'no invented nap',actualWake:'recalculated',pageErrors:errors},null,2));
