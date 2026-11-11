@@ -68,3 +68,7 @@ Huckleberry import review on each phone. These rollout results remain unreported
 
 1. Rerun **Wake_Window_TEST** and confirm **2.1.2 · TEST**. Check that **Suggested** appears beside **Today’s Plan**, then approve a demo schedule and confirm it becomes **Approved**.
 2. Tap **Morning Wake** at the top and save a demo wake time. On a previous date, verify the tile still opens the editor for that date. Check that **Change Bedtime** and **Updates** are aligned in the footer.
+
+## TEST 2.1.3 footer order
+
+Rerun **Wake_Window_TEST** and confirm **2.1.3 · TEST**. The top footer row should show **Change Bedtime** and **+ Add**. The second row should show **Refresh** and **Updates**. Tap both moved buttons to verify their menus.
