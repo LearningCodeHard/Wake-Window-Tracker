@@ -79,3 +79,10 @@ Rerun **Wake_Window_TEST** and confirm **2.1.3 · TEST**. The top footer row sho
 2. In demo mode, tap **Morning Wake**, **Daily Naps**, and **Bedtime Target**. Check the selected date for wake and bedtime edits. Save a preferred count of 2 and a maximum of 4, then reopen Planner Settings and verify the counts. Check that preferred above maximum is rejected.
 3. Open **More** and confirm **Refresh Shared Day**, **Planner Settings**, then **Updates**. Check that **Add** opens its usual actions and **Recalculate** opens alternatives for review.
 4. In demo mode or the separate TEST folder, try a late final nap and a nap pin during an appointment. Check the cause, bedtime impact or verified release preview, and the direct edit action. A blocked schedule should have no approval action. Close the review and verify the approved plan stays in place.
+
+## TEST 2.1.5 wake-window math
+
+1. Reopen **Wake_Window_TEST** and confirm **2.1.5 · TEST** in the footer. Use demo mode or the separate test folder.
+2. Approve a schedule, then log a nap ending up to 10 minutes later than planned. Check that the next approved nap's start stays fixed and its wake window equals the time from the actual end to that start.
+3. Log the final nap with a changed end time. Check that the displayed wake window before the approved bedtime equals the time from the actual nap end to that bedtime. If a revision is proposed, verify the approved time stays in place until you accept the revision.
+4. For a nap in progress, check that the next wake window is marked estimated and uses expected wake. If a saved transition is before expected wake, its row should show the overlap instead of a duration.

@@ -260,3 +260,57 @@ test('a late final nap shows the actual time, limiting wake window, and feasible
  assert.match(body,/Selected bedtime<\/dt><dd>8:25 PM/);
  assert.equal(s.context.__queue.length,0);
 });
+
+function timelineRow(s, title){
+ const rows=s.nodes.get('timeline').innerHTML.split('</button>');
+ const row=rows.find(html=>html.includes('class="event-title">'+title+' '));
+ assert.ok(row,'Expected timeline row for '+title);
+ return row;
+}
+
+test('approved next-nap wake interval follows the actual end even within the approval tolerance',()=>{
+ const s=screen();afternoon(s);
+ s.run(`var iso=ms=>new Date(ms).toISOString();
+   render();S.approved=WW.approval.saveApproval(S,currentPlan,clock());
+   var third=currentPlan.events.find(e=>e.kind==='nap');
+   S.day.naps[1].end=iso(Date.parse(S.day.naps[1].end)+10*60000);
+   render()`);
+ assert.equal(s.nodes.get('timelineNote').textContent,'Approved');
+ assert.equal(s.run("currentPlan.events.find(e=>e.kind==='nap').start===third.start"),true);
+ assert.match(timelineRow(s,'Nap 3'),/4:15 PM.*5:30 PM/);
+ assert.match(timelineRow(s,'Nap 3'),/Previous wake window · 2h 5m/);
+ assert.match(timelineRow(s,'Bedtime'),/Final wake window · 2h 30m/);
+});
+
+test('the approved bedtime row uses the actual final nap end while its replacement awaits approval',()=>{
+ const s=screen();afternoon(s);
+ s.run(`S.day.planning={awake:[],pins:[{id:'pin',ordinal:3,start:at('16:30'),minutes:90,anchors:[]}]};
+   render();S.approved=WW.approval.saveApproval(S,currentPlan,clock());
+   S.now=Date.parse(at('18:25'));S.day.naps.push({start:at('16:30'),end:at('18:25')});
+   render()`);
+ assert.equal(s.nodes.get('timelineNote').textContent,'Adjustment Needed');
+ assert.match(timelineRow(s,'Bedtime'),/8:00 PM/);
+ assert.match(timelineRow(s,'Bedtime'),/Final wake window · 1h 35m/);
+ assert.match(s.nodes.get('guidanceImpact').textContent,/8:25 PM/);
+});
+
+test('an active nap uses expected wake and flags an overlap with a saved nap instead of showing a negative window',()=>{
+ const s=screen();afternoon(s);
+ s.run(`render();S.approved=WW.approval.saveApproval(S,currentPlan,clock());
+   S.day.naps[1].end=null;S.day.naps[1].expectedEnd=at('14:30');render()`);
+ assert.match(timelineRow(s,'Nap 3'),/Previous wake window · 1h 45m \(estimated\)/);
+ s.run("S.day.naps[1].expectedEnd=at('16:25');render()");
+ assert.match(timelineRow(s,'Nap 3'),/Starts 10m before expected wake/);
+ assert.doesNotMatch(timelineRow(s,'Nap 3'),/Previous wake window/);
+});
+
+test('a locked first nap uses the edited morning wake',()=>{
+ const s=screen();
+ s.run(`var at=t=>WW.wall(S.date,t,S.settings.timezone);
+   S.now=Date.parse(at('07:06'));S.day.morning=at('07:00');S.day.naps=[];
+   render();S.approved=WW.approval.saveApproval(S,currentPlan,clock());
+   var first=currentPlan.events.find(e=>e.kind==='nap');
+   S.day.morning=at('07:05');render()`);
+ const expected=s.run('dur((first.start-Date.parse(S.day.morning))/60000)');
+ assert.ok(timelineRow(s,'Nap 1').includes('Previous wake window · '+expected));
+});

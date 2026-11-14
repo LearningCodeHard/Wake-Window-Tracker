@@ -2,6 +2,14 @@
 function dayPlanning(){return S.day.planning||{awake:[],pins:[]};}
 function futurePins(){return dayPlanning().pins.filter(p=>p.ordinal>S.day.naps.length||p.anchors.some((id,i)=>!S.day.naps[i]||WW.napIdentity(S.day.naps[i])!==id));}
 const eventSymbols={wake:'☀',nap:'',appointment:'◷',bedtime:'☾'};
+function wakeWindowLabel(label,wake,transition,{estimated=false,projected=false}={}){
+  if(wake==null)return '';
+  const difference=new Date(transition)-new Date(wake);
+  if(!Number.isFinite(difference))return '';
+  const minutes=Math.round(Math.abs(difference)/60000);
+  if(difference<0)return projected?`Starts ${minutes?dur(minutes):'less than 1m'} before ${estimated?'expected':'recorded'} wake`:'';
+  return `${label} · ${dur(minutes)}${estimated?' (estimated)':''}`;
+}
 function eventRow(title,sub,start,end,click,kind,tag='',wake='',next=false){
   return `<button class="event event-${kind}${next?' next-nap':''}" onclick="${esc(click)}">
     <span class="event-symbol" aria-hidden="true">${eventSymbols[kind]}</span>
@@ -51,7 +59,7 @@ function render(){
   if(d.morning)addEvent('Morning wake','',d.morning,null,'morningSheet()','wake','Recorded');
   let previous=d.morning;
   d.naps.forEach((n,i)=>{
-    const wake=previous?`Previous wake window · ${dur(Math.round((Date.parse(n.start)-Date.parse(previous))/60000))}`:'';
+    const wake=wakeWindowLabel('Previous wake window',previous,n.start);
     const details=n.end?dur(Math.round((Date.parse(n.end)-Date.parse(n.start))/60000)):'estimated end';
     addEvent(`Nap ${i+1}`,details,n.start,n.end||n.expectedEnd,n.end?`napSheet(${i})`:`activeNapSheet(${i})`,'nap',n.end?'Recorded':'In progress',wake);
     previous=n.end;
@@ -59,17 +67,21 @@ function render(){
   for(const a of dayPlanning().awake)addEvent(a.label||'Awake period','',a.start,a.end,`awakeSheet(${JSON.stringify(a.id)})`,'appointment','Keep awake');
   if(!historical){
     const nextNap=p.events.find(e=>e.kind==='nap'&&e.ordinal>d.naps.length&&e.start>=clock());
-    p.events.forEach((e,i)=>{
+    // The approved clock times stay locked. The first remaining transition
+    // starts from the wake displayed in the current records, not the saved plan's anchor.
+    let estimated=!!active;
+    previous=active?active.expectedEnd:previous;
+    p.events.forEach(e=>{
       if(e.kind!=='nap'||e.ordinal<=d.naps.length)return;
-      const before=p.events[i-1];
       addEvent(`Nap ${e.ordinal}`,dur(e.minutes),e.start,e.end,`pinSheet(${e.ordinal})`,'nap',
         e.start<clock()?'Overdue':`${e===nextNap?'Next · ':''}${e.pinned?'Pinned':review.saved?'Planned':'Suggested'}`,
-        before?`Previous wake window · ${dur(before.minutes)}`:'',e===nextNap);
+        wakeWindowLabel('Previous wake window',previous,e.start,{estimated,projected:true}),e===nextNap);
+      previous=e.end;
+      estimated=false;
     });
     if(p.bedtime){
-      const final=p.events[p.events.length-1];
       addEvent('Bedtime',p.deviation?bedtimeTradeoff(p):'',p.bedtime,null,'bedtimeSheet()','bedtime',review.saved?'Planned':'Suggested',
-        final?`Final wake window · ${dur(final.minutes)}`:'');
+        wakeWindowLabel('Final wake window',previous,p.bedtime,{estimated,projected:true}));
     }else{
       const paused=['blocked','active-overdue'].includes(p.status);
       addEvent('Bedtime target',paused?'Planning paused':'',target,null,'bedtimeSheet()','bedtime');
