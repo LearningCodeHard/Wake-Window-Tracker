@@ -133,7 +133,9 @@ async function runWakeWindow(runtime={}) {
         if(index>=0)planning.pins[index]=p;else planning.pins.push(p);message='Nap pin saved on this phone. Review the schedule for changes.';
         planning.pins=planning.pins.filter(x=>x.ordinal>actual.length||x.anchors.some((id,i)=>!actual[i]||WW.napIdentity(actual[i])!==id));
       }else if(action==='releasePin'){
-        if(!planning.pins.some(x=>x.id===d.id))throw Error('Select a saved nap pin.');planning.pins=planning.pins.filter(x=>x.id!==d.id);message='Nap pin released.';
+        if(!planning.pins.some(x=>x.id===d.id))throw Error('Select a saved nap pin.');
+        planning.pins=planning.pins.filter(x=>x.id!==d.id);
+        message=fresh.approved?'Nap pin released. Approved times stay in place until you approve a revision.':'Nap pin released.';
       }else if(action==='resolvePlanning'){
         const chosen=fresh.planningVersions.find(v=>v.id===d.version);
         if(!chosen)throw Error('That conflicting plan is no longer available. Refresh and review again.');

@@ -314,3 +314,42 @@ test('a locked first nap uses the edited morning wake',()=>{
  const expected=s.run('dur((first.start-Date.parse(S.day.morning))/60000)');
  assert.ok(timelineRow(s,'Nap 1').includes('Previous wake window · '+expected));
 });
+
+test('releasing a pin clears its live badge immediately while preserving approved times',async()=>{
+ const s=screen();afternoon(s);
+ s.run(`S.day.planning={awake:[],pins:[{id:'pin',ordinal:3,start:at('16:30'),minutes:90,anchors:[]}]};
+   S.revisions.planning='pinned';render();
+   S.approved=WW.approval.saveApproval(S,currentPlan,clock());render();pinSheet(3)`);
+ assert.match(timelineRow(s,'Nap 3'),/Next · Pinned/);
+ const original=s.run('JSON.stringify(currentPlan)');
+ const save=s.run('releaseCurrentPin()'),q=s.context.__queue.shift();
+ assert.equal(q.action,'releasePin');
+ assert.equal(q.data.id,'pin');
+ assert.equal(q.data.base,'pinned');
+ const refreshed=s.run('JSON.parse(JSON.stringify(S))');
+ refreshed.day.planning.pins=[];
+ refreshed.revisions.planning='released';
+ s.context.receive({id:q.id,snapshot:refreshed,saveConfirmed:true,message:'Nap pin released.'});
+ await save;
+ assert.equal(s.run('JSON.stringify(currentPlan)'),original);
+ assert.match(timelineRow(s,'Nap 3'),/4:30 PM.*6:00 PM/);
+ assert.match(timelineRow(s,'Nap 3'),/Next · Planned/);
+ s.run('pinSheet(3)');
+ assert.doesNotMatch(s.nodes.get('modalBody').innerHTML,/Release This Pin/);
+ s.run('planningSheet()');
+ assert.match(s.nodes.get('modalBody').innerHTML,/No active adjustments/);
+ s.run('reviewSchedule()');
+ assert.match(s.nodes.get('modalBody').innerHTML,/4:15 PM.*5:30 PM/);
+});
+
+test('a new pin against a locked schedule is pending until the displayed nap matches it',()=>{
+ const s=screen();afternoon(s);
+ s.run(`render();S.approved=WW.approval.saveApproval(S,currentPlan,clock());
+   S.day.planning={awake:[],pins:[{id:'pin',ordinal:3,start:at('16:30'),minutes:90,anchors:[]}]};
+   render()`);
+ assert.match(timelineRow(s,'Nap 3'),/Next · Pin pending/);
+ assert.match(timelineRow(s,'Nap 3'),/4:15 PM.*5:30 PM/);
+ s.run('S.approved=WW.approval.saveApproval(S,displayedReview.proposal,clock());render()');
+ assert.match(timelineRow(s,'Nap 3'),/Next · Pinned/);
+ assert.match(timelineRow(s,'Nap 3'),/4:30 PM.*6:00 PM/);
+});

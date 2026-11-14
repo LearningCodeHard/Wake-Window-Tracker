@@ -280,3 +280,21 @@ test('quick nap counts preserve shared settings, validate the range and reject a
  assert.equal(r.snap.settings.bedtime,'19:30');assert.equal(r.snap.settings.final.ideal,155);
  assert.equal(store.files.size,2);
 });
+
+test('releasing an approved pin syncs its removal and keeps the approved schedule',async()=>{
+ const store=separateTest(),date='2026-10-05';
+ const pinned=await run(store,[
+  command(1,'morning',{date,time:'09:45',base:null}),
+  s=>command(2,'pinNap',{date,base:s.revisions.planning,ordinal:1,start:'12:10',minutes:null}),
+  s=>approve(s,3)
+ ],'OPEN',testFolder);
+ assert.equal(pinned.snap.approved.plan.events.find(e=>e.kind==='nap').pinned,true);
+ const release=command(4,'releasePin',{date,base:pinned.snap.revisions.planning,id:pinned.snap.day.planning.pins[0].id});
+ const released=await run(store,[release],'OPEN',testFolder);
+ assert.equal(released.responses[0].saveConfirmed,true);
+ assert.match(released.responses[0].message,/Approved times stay in place/);
+ const otherPhone=await run(store,[],'OPEN',testFolder);
+ assert.equal(otherPhone.snap.day.planning.pins.length,0);
+ assert.equal(JSON.stringify(otherPhone.snap.approved),JSON.stringify(pinned.snap.approved));
+ assert.equal(planner.plan(otherPhone.snap.day,otherPhone.snap.settings,otherPhone.snap.now).events.find(e=>e.kind==='nap').pinned,false);
+});

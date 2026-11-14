@@ -86,3 +86,9 @@ Rerun **Wake_Window_TEST** and confirm **2.1.3 · TEST**. The top footer row sho
 2. Approve a schedule, then log a nap ending up to 10 minutes later than planned. Check that the next approved nap's start stays fixed and its wake window equals the time from the actual end to that start.
 3. Log the final nap with a changed end time. Check that the displayed wake window before the approved bedtime equals the time from the actual nap end to that bedtime. If a revision is proposed, verify the approved time stays in place until you accept the revision.
 4. For a nap in progress, check that the next wake window is marked estimated and uses expected wake. If a saved transition is before expected wake, its row should show the overlap instead of a duration.
+
+## TEST 2.1.6 nap pin release
+
+1. Reopen **Wake_Window_TEST** and confirm **2.1.6 · TEST** in the footer. In demo mode or the separate TEST folder, pin a future nap and approve a schedule that uses the pin.
+2. Tap the pinned nap and choose **Release This Pin**. The badge should change from **Pinned** to **Planned** immediately. The approved time should stay in place while the updated schedule waits for approval.
+3. Open the updated proposal and check that the planner can move the unpinned nap. In the separate TEST folder, refresh the other phone and confirm the pin is gone there too.

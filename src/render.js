@@ -1,6 +1,15 @@
 /* Quiet timeline and V2 planning controls. Existing actual-event forms stay in ui.js. */
 function dayPlanning(){return S.day.planning||{awake:[],pins:[]};}
 function futurePins(){return dayPlanning().pins.filter(p=>p.ordinal>S.day.naps.length||p.anchors.some((id,i)=>!S.day.naps[i]||WW.napIdentity(S.day.naps[i])!==id));}
+function livePinLabel(event){
+  // Approval snapshots retain their original pin flags. The badge follows current edits.
+  const pin=dayPlanning().pins.find(p=>p.ordinal===event.ordinal);
+  if(!pin)return '';
+  const matches=(pin.start===null||Date.parse(pin.start)===event.start)&&
+    (pin.minutes===null||pin.minutes===event.minutes)&&(!pin.profile||pin.profile===event.profile)&&
+    pin.anchors.every((id,i)=>S.day.naps[i]&&WW.napIdentity(S.day.naps[i])===id);
+  return matches?'Pinned':'Pin pending';
+}
 const eventSymbols={wake:'☀',nap:'',appointment:'◷',bedtime:'☾'};
 function wakeWindowLabel(label,wake,transition,{estimated=false,projected=false}={}){
   if(wake==null)return '';
@@ -73,8 +82,9 @@ function render(){
     previous=active?active.expectedEnd:previous;
     p.events.forEach(e=>{
       if(e.kind!=='nap'||e.ordinal<=d.naps.length)return;
+      const status=livePinLabel(e)||(review.saved?'Planned':'Suggested');
       addEvent(`Nap ${e.ordinal}`,dur(e.minutes),e.start,e.end,`pinSheet(${e.ordinal})`,'nap',
-        e.start<clock()?'Overdue':`${e===nextNap?'Next · ':''}${e.pinned?'Pinned':review.saved?'Planned':'Suggested'}`,
+        e.start<clock()?'Overdue':`${e===nextNap?'Next · ':''}${status}`,
         wakeWindowLabel('Previous wake window',previous,e.start,{estimated,projected:true}),e===nextNap);
       previous=e.end;
       estimated=false;
