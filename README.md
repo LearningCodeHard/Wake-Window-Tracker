@@ -100,7 +100,7 @@ reset and conflicting saved versions inline. The warning’s Review Adjustments
 shortcut opens the same management controls. Confirmation screens still protect
 deletions/reset; they are not navigation menus.
 
-Production sequence 5 selects the accepted 2.1.4 artifact. TEST sequence 12 runs 2.1.6 with corrected wake-window and nap pin labels.
+Production sequence 6 and TEST sequence 12 select the accepted 2.1.6 artifact with corrected wake-window and nap pin labels.
 See [release acceptance](RELEASE_ACCEPTANCE.md) for the artifact and rollout details.
 App changes arrive automatically; flat updater actions require the new direct
 bridge in launcher 1.0.3, so replace the installed launcher once. Older launchers

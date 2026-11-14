@@ -1,11 +1,11 @@
 {
   "schema": 1,
   "channel": "production",
-  "sequence": 5,
-  "version": "2.1.4",
-  "sha256": "d32df17deafe6b1114dea0cdb6a309a032da8571f7121a0e5134ef5d09c727f9",
-  "path": "releases/d32df17deafe6b1114dea0cdb6a309a032da8571f7121a0e5134ef5d09c727f9.js",
-  "bytes": 147523,
+  "sequence": 6,
+  "version": "2.1.6",
+  "sha256": "e10693636edefaf5d8585e1e1c6bd16ae48827debd13dc61fe4ba96c85a6f75d",
+  "path": "releases/e10693636edefaf5d8585e1e1c6bd16ae48827debd13dc61fe4ba96c85a6f75d.js",
+  "bytes": 148877,
   "minLauncher": 1,
   "dataSchema": 1
 }

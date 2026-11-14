@@ -1,3 +1,17 @@
+# V2.1.6 production acceptance
+
+Cameron approved promotion of the audited TEST 2.1.6 build. All 228
+automated checks passed. Production sequence **6** and TEST sequence **12**
+point to the same immutable 148877-byte artifact.
+
+SHA-256: `e10693636edefaf5d8585e1e1c6bd16ae48827debd13dc61fe4ba96c85a6f75d`
+
+This release corrects wake-window labels and updates the Pinned badge when a
+pin is released. The existing launcher picks up the new production manifest
+on launch. On-device rollout and live iCloud sync confirmation are pending.
+
+---
+
 # V2.1.4 production acceptance — November 13, 2026
 
 Cameron approved promotion of the TEST 2.1.4 build. The candidate passed 221
