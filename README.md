@@ -100,8 +100,8 @@ reset and conflicting saved versions inline. The warning’s Review Adjustments
 shortcut opens the same management controls. Confirmation screens still protect
 deletions/reset; they are not navigation menus.
 
-Production selects the accepted 2.0.5 artifact at sequence 4. TEST selects
-2.1.0 at sequence 6 for schedule approval and alternatives.
+Production sequence 5 and TEST sequence 10 select the accepted 2.1.4 artifact.
+See [release acceptance](RELEASE_ACCEPTANCE.md) for the artifact and rollout details.
 App changes arrive automatically; flat updater actions require the new direct
 bridge in launcher 1.0.3, so replace the installed launcher once. Older launchers
 still run the candidate and can use UPDATE_SETTINGS for native recovery controls.

@@ -1,3 +1,18 @@
+# V2.1.4 production acceptance — November 13, 2026
+
+Cameron approved promotion of the TEST 2.1.4 build. The candidate passed 221
+automated checks. Production sequence **5** and TEST sequence **10** now point
+to the same immutable 147523-byte artifact.
+
+SHA-256: `d32df17deafe6b1114dea0cdb6a309a032da8571f7121a0e5134ef5d09c727f9`
+
+The production launcher reads the existing `WakeWindowShared` bookmark.
+Reopen the production shortcut on each phone and check **2.1.4 · PRODUCTION**
+in the footer, then confirm the existing records are visible. On-device rollout
+confirmation is pending.
+
+---
+
 # V2.0.5 Production Acceptance — October 14, 2026
 
 The user accepted the TEST candidate: “Looks great please prepare for the
