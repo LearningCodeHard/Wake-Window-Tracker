@@ -1,26 +1,35 @@
-# Budget Planner releases
+# Budget Planner Test
 
-This branch distributes Budget Planner code only. Wake Window channels are maintained separately. The launcher's GitHub connection is read-only and never accesses or uploads saved budgets.
+## Install on iPhone
 
-## Install once
+1. Open [Budget_Planner_Test_Launcher.txt](Budget_Planner_Test_Launcher.txt) and copy its contents into a **new** Scriptable script named **Budget Planner TEST**.
+2. Run Budget Planner TEST once in Scriptable while online. It opens a separate empty plan with its own release cache and update settings.
+3. For realistic data, export a backup from Budget Planner and restore the copy from Settings in Budget Planner TEST. For Shortcuts, duplicate your existing shortcut and select Budget Planner TEST in its Run Script action.
 
-Replace the contents of the existing **Budget Planner** script in Scriptable with [Budget_Planner_Launcher.txt](Budget_Planner_Launcher.txt). Keep its name so existing Shortcuts continue to use it. Run it once while online to cache the first verified release. The dashboard continues to use the existing local BudgetPlannerV1 plan.
+## Release candidates
 
-The launcher checks manifest.json on each normal run, verifies SHA-256 and byte count, and uses the cached version if GitHub is unavailable. A first-time installation needs internet access. The dashboard opens with Run in App on; VIEW and SUMMARY work with it off and can feed Show Result.
+### v1.3.1
 
-Use UPDATE_STATUS for the cached version, or UPDATE_SETTINGS with Run in App on to pause updates or revert to a previously cached release.
+- Manage entries returns to the same list position after editing or canceling. Failed saves keep the editor open.
+- Same-day checking entries can be marked **Posted** or **Pending**. Pending entries are included on the snapshot day. The dashboard and Shortcut summary flag items that still need review.
+- Twice-monthly payments can share a calendar date and remain individually editable.
+- Local saves use separate writer tickets and revision checks. Failed cleanup does not hide a verified save.
+- The TEST launcher validates the module entry point before activating an update. Captured text receipts retain a fingerprint so later backups can omit dismissed text.
 
-## Import a bank screenshot (v1.2.0)
+### v1.4.0
 
-Create a Shortcut named **Import Bank Balance**:
+- Add Bill, Add Spending and Add Financing offer editable presets, including Mortgage, Groceries and Vehicle payment. Custom opens a blank entry. Existing entries can be assigned a category while editing.
+- **Budgets** shows the selected month's recorded spending, unpaid scheduled amounts and projected month-end total against recurring category goals. Set a goal, log a one-off purchase, or mark a scheduled item paid with its actual amount and posting date.
+- A linked paid item counts once in the selected budget. Use the card payoff checkbox for card bills whose purchases you track separately. The payoff is still scheduled in the checking forecast. Log spending and Mark paid update budget records. Horizon uses the checking snapshot and its scheduled cash entries.
+- Checking imports still accept one amount such as **CHECKING: $1,234.56** with Run in App off. VIEW and SUMMARY also support background execution. Native Scriptable, Files and Shortcuts still need iPhone verification.
 
-1. Enable **Show in Share Sheet** and accept **Images**. Use **Shortcut Input** as the image, or start with **Take Screenshot** if you prefer a shortcut that captures the screen itself.
-2. Add **Extract Text from Image** using that image.
-3. Add a **Dictionary** with two text entries: `action` = `IMPORT_BALANCE`, and `text` = the Extract Text from Image output (insert the output variable).
-4. Add Scriptable's **Run Script** action. Select your existing **Budget Planner** script, pass the Dictionary as **Parameter**, and turn **Run in App** on.
+## Verify and build
 
-From the screenshot share sheet, run **Import Bank Balance**. Review the suggested amount(s), select the correct tracked account balance or type it manually, choose the closing date, confirm, and save. The import updates the forecast's starting balance; it does not import transactions. Use a closing balance that includes all activity through the chosen date so same-day scheduled movements are not counted twice or omitted. The screenshot and extracted text are not stored by Budget Planner or sent to GitHub.
+Run the test suite from the repository root with Node.
 
-## Release process
+    node --test tests/*.test.cjs
+    BUDGET_MANIFEST=manifest-v1.3.1.json node --test tests/*.test.cjs
 
-Build the Scriptable app as a module exporting async run(input). Keep real or example personal budget data out of the release. Verify shortcut inputs, offline operation, update integrity, and the existing local data schema. Write the immutable releases/<sha256>.js file and update manifest.json together, incrementing sequence. Publish only to this branch. Never reuse a sequence for different content. Changes to launcher capabilities require a new launcher install.
+The tests use synthetic budgets and simulations of Scriptable and its dashboard bridge. For an iPhone smoke test, edit two entries in one visit, test a checking snapshot with a pending bill, create a six-payment financing schedule, and log an actual in Budgets. Verify its category projection and test the launcher offline after its first online run.
+
+Build the current source with **node build.cjs VERSION SEQUENCE**. This emits manifest.json and an immutable release file. The iPhone launcher verifies the byte count, hash and module entry point. Production releases use the [budget-planner branch](https://github.com/LearningCodeHard/Wake-Window-Tracker/tree/budget-planner).
