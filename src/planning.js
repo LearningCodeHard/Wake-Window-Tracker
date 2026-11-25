@@ -60,7 +60,7 @@ const WWPlanning = (() => {
     const rank=(a,b)=>Math.abs(a.deviation)-Math.abs(b.deviation)||a.targetGap-b.targetGap||a.score-b.score||a.count-b.count;
     // For a given cursor and nap count, future constraints are independent of earlier durations.
     // Keep the cheapest path to each cursor, retaining links for the winning timeline.
-    function solve(preferred){
+    function solve(preferred, flexible=false){
       let states=new Map([[0,{score:0}]]),results=[];
       function keep(map,end,score,previous,kind,start,details){
         if(!map.has(end)||map.get(end).score>score)map.set(end,{score,previous,event:{...event(kind,start,end),...details}});
@@ -69,8 +69,8 @@ const WWPlanning = (() => {
         let best;
         if(count>=required){
           for(const [cursor,state] of states){
-            const low=Math.max(cursor+s.final.min,minimumBed,count===0?elapsed:0);
-            const high=Math.min(cursor+s.final.max,horizon);
+            const low=Math.max(cursor+(flexible?1:s.final.min),minimumBed,count===0?elapsed:0);
+            const high=Math.min(flexible?horizon:cursor+s.final.max,horizon);
             if(low>high)continue;
             const end=Math.max(low,Math.min(high,wanted));
             const score=(state.score+cost(s.final,end-cursor))/(2*count+1);
@@ -92,7 +92,10 @@ const WWPlanning = (() => {
         const wake=wakeRange(ordinal-1),awakeStates=new Map();
         for(const [cursor,state] of states){
           const fixed=pin&&pin.start!==null?relative(pin.start)-cursor:null;
-          const lo=Math.max(wake.min,count===0?elapsed:0,fixed??0),hi=Math.min(wake.max,fixed??horizon);
+          const minimum=count===0?elapsed:0;
+          const lo=Math.max(minimum, fixed??(flexible?1:wake.min));
+          const hi=fixed??(flexible?horizon:wake.max);
+          if(fixed!==null && fixed<1)continue;
           for(let m=lo;Number.isInteger(m)&&m<=hi&&cursor+m<=horizon;m++)
             keep(awakeStates,cursor+m,state.score+cost(wake,m),state,'awake',cursor);
         }
@@ -102,7 +105,7 @@ const WWPlanning = (() => {
           const nextAppointment=periods.filter(a=>a.end>cursor).reduce((first,a)=>Math.min(first,a.start),horizon);
           for(const profile of choices){
             const range=profiles[profile],fixed=pin?.minutes??null;
-            const lo=Math.max(range.min,fixed??0),hi=Math.min(range.max,fixed??horizon,nextAppointment-cursor,horizon-cursor);
+            const lo=fixed??range.min,hi=Math.min(fixed??range.max,nextAppointment-cursor,horizon-cursor);
             for(let m=lo;m<=hi;m++)keep(next,cursor+m,state.score+cost(range,m)+(profile===preferred?0:1),
               state,'nap',cursor,{ordinal,profile,pinned:!!pin});
           }
@@ -111,13 +114,15 @@ const WWPlanning = (() => {
       }
       return results.sort(rank);
     }
-    const standard=solve('standard');
+    let standard=solve('standard');
+    const exact=pins.some(p=>p.start!==null||p.minutes!==null);
+    if(!standard.length&&exact)standard=solve('standard',true);
     if(!standard.length){
       if(elapsed>Math.max(s.final.max,wakeRange(countActual).max))
         return blocked('The current wake window already exceeds your configured maximum. Log any missed nap or review the applicable wake-window limits in Settings.','wake-limit');
       for(const pin of pins){
         if(pin.start===null)continue;
-        const appointment=data.awake.find(a=>Date.parse(a.start)<=Date.parse(pin.start)&&Date.parse(pin.start)<Date.parse(a.end));
+        const appointment=data.awake.find(a=>overlap(Date.parse(pin.start),Date.parse(pin.start)+(pin.minutes||1)*minute,Date.parse(a.start),Date.parse(a.end)));
         if(appointment)return blocked('A pinned nap starts during an awake period.','pins',{pin,appointment});
       }
       if(pins.length)return blocked('No schedule fits the saved nap pins within the wake windows, nap profiles or appointments. Move or release a pin, or review its duration profile.','pins');
@@ -125,7 +130,13 @@ const WWPlanning = (() => {
       return blocked('No bedtime fits the remaining wake-window limits today. Review the recorded wake time, nap allowance or final wake-window settings.','day-end');
     }
     const best=standard[0],selected=[best];
-    if(compare){
+    if(compare&&exact){
+      const last=best.events[best.events.length-1];
+      if(best.deviation && target>last.start && wanted>=minimumBed && wanted<=horizon && wanted>=elapsed){
+        const minutes=(target-last.start)/minute;
+        selected.push({...best, bedtime:target, deviation:0, events:[...best.events.slice(0,-1),{...last,end:target,minutes}],optionLabel:'Keep target bedtime'});
+      }
+    }else if(compare){
       const variants=standard.slice(1).concat(solve('long').slice(0,1),solve('short').slice(0,1));
       const diverse=(a,b)=>a.count!==b.count||Math.abs(a.bedtime-b.bedtime)>=15*minute||
         a.events.some((e,i)=>e.kind==='nap'&&Math.abs(e.minutes-b.events[i].minutes)>=15);

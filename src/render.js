@@ -41,16 +41,19 @@ function render(){
   try{
     WW.validateDay(d,S.settings,clock());
     review=historical?{}:scheduleReview();
-    p=review.saved||review.proposal||{events:[]};
+    p=(futurePins().length&&review.proposal)||review.saved||review.proposal||{events:[]};
   }catch(e){p={status:'error',events:[],message:e.message};review={};}
   currentPlan=p;
   const last=d.naps[d.naps.length-1],anchor=Date.parse(last?.end||d.morning);
   const warnings=[...(S.warnings||[]),...(review.proposal?.notes||p.notes||[])];
+  if(review.proposal?.status==='blocked')for(const pin of futurePins()){
+    warnings.push(`Nap ${pin.ordinal} · ${pin.start?fmt(pin.start):'Start Auto'} · ${pin.minutes!==null?dur(pin.minutes):'Duration Auto'}`);
+  }
   if((S.conflicts||[]).length)warnings.push('Conflicting edits were found. Review the displayed entries and save again to acknowledge the latest revision.');
   if(historical)warnings.push('Viewing another date. Actual records and saved appointments are shown.');
   $('notice').hidden=!warnings.length;$('notice').textContent=warnings.join(' ');
   $('timelineNote').hidden=!review.status;
-  $('timelineNote').textContent=review.status==='Needs Approval'?'Suggested':review.status||'';
+  $('timelineNote').textContent=review.proposal?.bedtime&&p===review.proposal&&futurePins().length?'Needs approval':review.status==='Needs Approval'?'Suggested':review.status||'';
   const counts=WW.napCounts(S.settings);
   $('morningMetric').textContent=d.morning?fmt(d.morning):'Set time';
   $('napMetric').textContent=`${counts.target} target`;
@@ -153,9 +156,18 @@ function pinSheet(ordinal){
   window.planningEntryDate=S.date;window.planningBase=S.revisions.planning||null;window.pinOrdinal=ordinal;window.pinEditId=pin?pin.id:null;
   const start=pin&&pin.start?WW.parts(pin.start,S.settings.timezone).time:event?WW.parts(event.start,S.settings.timezone).time:'';
   const minutes=pin&&pin.minutes!==null?pin.minutes:event?event.minutes:S.settings.nap.ideal;
-  openSheet(`Adjust suggested nap ${ordinal}`,`<p>${esc(napDateNote(S.date))} · Choose a start time, duration or profile.</p><label class="check-row"><input id="pinStartEnabled" type="checkbox" ${!pin||pin.start!==null?'checked':''}>Pin start time</label><div class="form-grid">${field('Start','pinStart','time',start)}</div><label class="check-row"><input id="pinDurationEnabled" type="checkbox" ${pin&&pin.minutes!==null?'checked':''}>Pin duration</label><div class="form-grid">${field('Duration · minutes','pinMinutes','number',minutes)}</div><div class="field"><label for="pinProfile">Nap profile</label><select id="pinProfile">${Object.entries(WW.napProfiles(S.settings)).map(([name,r])=>`<option value="${name}" ${(pin?.profile||event?.profile||'standard')===name?'selected':''}>${name[0].toUpperCase()+name.slice(1)} · ${r.min}–${r.max} min</option>`).join('')}</select></div><label class="check-row"><input id="pinProfileEnabled" type="checkbox" ${pin?.profile?'checked':''}>Pin profile</label>${saveButtons('savePin()','Save Pin')}${pin?'<div class="toolbar"><button class="small-btn" onclick="releaseCurrentPin()">Release This Pin</button></div>':''}`);
+  openSheet(`Adjust suggested nap ${ordinal}`,`<p>${esc(napDateNote(S.date))} · Choose a start time, duration or profile.</p><label class="check-row"><input id="pinStartEnabled" type="checkbox" ${pin&&pin.start!==null?'checked':''}>Pin start time</label><div class="form-grid">${field('Start','pinStart','time',start)}</div><label class="check-row"><input id="pinDurationEnabled" type="checkbox" ${pin&&pin.minutes!==null?'checked':''}>Pin duration</label><div class="form-grid">${field('Duration · minutes','pinMinutes','number',minutes)}${field('Set by end time','pinEnd','time','')}</div><div class="field"><label for="pinProfile">Nap profile</label><select id="pinProfile">${Object.entries(WW.napProfiles(S.settings)).map(([name,r])=>`<option value="${name}" ${(pin?.profile||event?.profile||'standard')===name?'selected':''}>${name[0].toUpperCase()+name.slice(1)} · ${r.min}–${r.max} min</option>`).join('')}</select></div><label class="check-row"><input id="pinProfileEnabled" type="checkbox" ${pin?.profile?'checked':''}>Pin profile</label>${saveButtons('savePin()','Save Pin')}${pin?'<div class="toolbar"><button class="small-btn" onclick="releaseCurrentPin()">Return to Auto</button></div>':''}`);
+  $('pinEnd').oninput=()=>{
+    if(!$('pinStart').value||!$('pinEnd').value)return;
+    const stamp=id=>Date.parse(WW.wall(S.date,$(id).value,S.settings.timezone));
+    $('pinMinutes').value=(stamp('pinEnd')-stamp('pinStart'))/60000;
+    $('pinStartEnabled').checked=$('pinDurationEnabled').checked=true;
+  };
+  $('pinStart').oninput=()=>{$('pinEnd').value='';$('pinStartEnabled').checked=true;};
+  $('pinMinutes').oninput=()=>{$('pinEnd').value='';$('pinDurationEnabled').checked=true;};
+
 }
-async function savePin(){if(!$('pinStartEnabled').checked&&!$('pinDurationEnabled').checked&&!$('pinProfileEnabled').checked){$('modalError').textContent='Choose a start, duration or profile to pin, or release the existing pin.';return;}await act('pinNap',{date:window.planningEntryDate,base:window.planningBase,ordinal:window.pinOrdinal,start:$('pinStartEnabled').checked?$('pinStart').value:null,minutes:$('pinDurationEnabled').checked?Number($('pinMinutes').value):null,profile:$('pinProfileEnabled').checked||$('pinDurationEnabled').checked?$('pinProfile').value:null});}
+async function savePin(){if(!$('pinStartEnabled').checked&&!$('pinDurationEnabled').checked&&!$('pinProfileEnabled').checked){$('modalError').textContent='Choose a start, duration or profile to pin, or release the existing pin.';return;}await act('pinNap',{date:window.planningEntryDate,base:window.planningBase,ordinal:window.pinOrdinal,start:$('pinStartEnabled').checked?$('pinStart').value:null,minutes:$('pinDurationEnabled').checked?Number($('pinMinutes').value):null,profile:$('pinProfileEnabled').checked?$('pinProfile').value:null});}
 async function releaseCurrentPin(){await act('releasePin',{date:window.planningEntryDate,base:window.planningBase,id:window.pinEditId});}
 function planningControls(){
   if(S.day.planningConflict)return planningConflictControls();
@@ -318,7 +330,7 @@ function showOptions(options,generatedAt,compare){
   const preview=review?.saved?`<section class="change-preview"><h3>Change preview</h3><dl id="bedtimePreview" aria-live="polite">${bedtimePreview(review.saved.bedtime,available[0].bedtime)}</dl></section>`:'';
   openSheet(compare?'Schedule Alternatives':adjusting?'Adjustment Needed':'Review Schedule',
     summary+(adjusting?'<h3 class="option-heading">Recommended adjustments</h3>':'')+
-    available.map((p,i)=>optionCard(p,`Option ${i+1}`,i)).join('')+preview+editNap+
+    available.map((p,i)=>optionCard(p,p.optionLabel||`Option ${i+1}`,i)).join('')+preview+editNap+
     `<div class="toolbar"><button class="small-btn" onclick="recalculate()">${compare?'Recalculate':'View Alternatives'}</button><button class="small-btn" onclick="reloadSchedule()">Refresh Shared Day</button></div>
     ${canApprove?'':'<p>Refresh and review conflicting edits before approving.</p>'}`,
     `<button onclick="closeSheet()">${review?.saved?'Keep Current':'Cancel'}</button>

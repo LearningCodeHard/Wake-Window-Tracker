@@ -15,8 +15,8 @@ test('start-only pin leaves duration automatic; duration-only pin leaves start a
 test('future actual nap cannot be invented to satisfy a pin',()=>{
  const day=d();day.planning.pins=[pin('15:45',90)];W.plan(day,s,ms('12:46'));assert.equal(day.naps.length,2);assert.equal(day.naps[1].end,null);
 });
-test('impossible pin blocks forecasts without extending normal wake windows',()=>{
- const day=d();day.planning.pins=[pin('17:00',90)];const p=W.plan(day,s,ms('12:46'));assert.equal(p.status,'blocked');assert.deepEqual(p.events,[]);assert.equal(p.bedtime,undefined);assert.match(p.message,/pin/);
+test('exact start overrides the normal wake window',()=>{
+ const day=d();day.planning.pins=[pin('17:00',90)];const p=W.plan(day,s,ms('12:46'));assert.equal(p.events.find(e=>e.kind==='nap').start,ms('17:00'));
 });
 test('pin and appointment overlap cannot both be satisfied',()=>{
  const day=d();day.planning={awake:[awake('15:30','16:00')],pins:[pin('15:45',90)]};assert.equal(W.plan(day,s,ms('12:46')).status,'blocked');
@@ -52,7 +52,7 @@ test('an unfulfilled start pin in the past requires logging, moving or releasing
  const day=d();day.naps[1].end=at('13:30');delete day.naps[1].expectedEnd;day.planning.pins=[pin()];const p=W.plan(day,s,ms('16:00'));assert.equal(p.reason,'expired-pin');assert.match(p.message,/Log the nap/);
 });
 test('changing nap settings does not silently coerce an existing duration pin',()=>{
- const day=d();day.planning.pins=[pin()];const settings=W.copy(s);settings.nap.max=80;assert.equal(W.plan(day,settings,ms('12:46')).status,'blocked');assert.equal(day.planning.pins[0].minutes,90);
+ const day=d();day.planning.pins=[pin()];const settings=W.copy(s);settings.nap.max=80;assert.equal(W.plan(day,settings,ms('12:46')).events.find(e=>e.kind==='nap').minutes,90);assert.equal(day.planning.pins[0].minutes,90);
 });
 test('an appointment after target forces an explicit bedtime deviation',()=>{
  const day=d();day.planning.awake=[awake('20:15','20:45')];const p=W.plan(day,s,ms('12:46'));assert.ok(p.bedtime>=ms('20:45'));assert.ok(p.deviation>=45);assert.equal(p.status,'adjust');
@@ -99,7 +99,7 @@ test('short and long overrides restrict the individual nap, including profile-on
  assert.deepEqual(naps.map(n=>n.profile),['short','long']);
  assert.ok(naps[0].minutes>=30&&naps[0].minutes<=40);assert.equal(naps[1].minutes,105);
  day.planning.pins[1].minutes=111;
- assert.equal(W.plan(day,settings,ms('07:00')).status,'blocked');
+ assert.equal(W.plan(day,settings,ms('07:00')).events.find(e=>e.ordinal===2).minutes,111);
  assert.throws(()=>W.validateSettings({...settings,napTarget:3}),/maximum/);
 });
 test('passes target time when a later bedtime is feasible and blocks impossible awake limits',()=>{
@@ -116,4 +116,11 @@ test('daylight-saving changes use elapsed minutes and keep the schedule inside t
  assert.ok(nap);assert.equal(W.parts(nap.start,tz).time,'03:45');
  assert.equal((nap.start-Date.parse(morning))/60000,p.events[0].minutes);
  assert.equal(W.parts(p.bedtime,tz).date,dst);
+});
+
+test('both bedtime choices keep an exact last nap',()=>{
+ const day={date,morning:at('07:30'),naps:[{entity:'first',start:at('10:09'),end:at('11:59')}],planning:{awake:[],pins:[{id:'p',ordinal:2,start:at('14:59'),minutes:70,anchors:['first']}]}};
+ const opts=W.alternatives(day,{...s,napMax:2,napTarget:2},ms('13:56'),true);
+ assert.deepEqual(opts.map(p=>p.bedtime),[ms('19:09'),ms('20:00')]);
+ for(const p of opts){const nap=p.events.find(e=>e.kind==='nap');assert.equal(nap.start,ms('14:59'));assert.equal(nap.end,ms('16:09'));}
 });

@@ -126,8 +126,7 @@ async function runWakeWindow(runtime={}) {
         if(start!==null&&Date.parse(start)<now())throw Error('A new pinned start must be now or in the future.');
         const profiles=WW.napProfiles(s),profile=d.profile||null;
         if(profile&&!Object.prototype.hasOwnProperty.call(profiles,profile))throw Error('Choose a valid nap profile.');
-        const range=profiles[profile||'standard'];
-        if(minutes!==null&&(!Number.isInteger(minutes)||minutes<range.min||minutes>range.max))throw Error('Pinned duration must stay within the selected nap profile’s minimum and maximum.');
+        if(minutes!==null&&(!Number.isInteger(minutes)||minutes<1||minutes>600))throw Error('Use a whole duration between 1 and 600 minutes.');
         const index=planning.pins.findIndex(x=>x.ordinal===ordinal);
         const p={id:index>=0?planning.pins[index].id:uuid(),ordinal,start,minutes,...(profile?{profile}:{}),anchors:actual.map(WW.napIdentity)};
         if(index>=0)planning.pins[index]=p;else planning.pins.push(p);message='Nap pin saved on this phone. Review the schedule for changes.';

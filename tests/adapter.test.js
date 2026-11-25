@@ -93,8 +93,8 @@ test('pin start and duration save separately from completed sleep',async()=>{
  assert.deepEqual(r.alerts,[]);assert.equal(r.snap.day.naps.length,1);assert.equal(r.snap.day.planning.pins[0].minutes,60);assert.equal(r.snap.day.planning.pins[0].anchors[0],r.snap.day.naps[0].entity);assert.ok(r.snap.lastSavedAt);
 });
 test('bad duration, expired start and actual nap pins are refused without a planning write',async()=>{
- const store=shared(),date='2026-10-05';const r=await run(store,[command(1,'nap',{date,start:'10:00',end:'11:00'}),command(2,'pinNap',{date,base:null,ordinal:2,start:'13:00',minutes:10}),command(3,'pinNap',{date,base:null,ordinal:2,start:'11:30',minutes:null}),command(4,'pinNap',{date,base:null,ordinal:1,start:'13:00',minutes:60})]);
- assert.equal(store.files.size,1);assert.equal(r.snap.day.planning.pins.length,0);assert.match(r.responses[1].error,/minimum/);assert.match(r.responses[2].error,/future/);assert.match(r.responses[3].error,/actual/);
+ const store=shared(),date='2026-10-05';const r=await run(store,[command(1,'nap',{date,start:'10:00',end:'11:00'}),command(2,'pinNap',{date,base:null,ordinal:2,start:'13:00',minutes:0}),command(3,'pinNap',{date,base:null,ordinal:2,start:'11:30',minutes:null}),command(4,'pinNap',{date,base:null,ordinal:1,start:'13:00',minutes:60})]);
+ assert.equal(store.files.size,1);assert.equal(r.snap.day.planning.pins.length,0);assert.match(r.responses[1].error,/whole duration/);assert.match(r.responses[2].error,/future/);assert.match(r.responses[3].error,/actual/);
 });
 test('clear planning is one revision and preserves actuals, morning, bedtime and defaults',async()=>{
  const store=shared(),date='2026-10-05';const r=await run(store,[command(1,'morning',{date,time:'07:00',base:null}),command(2,'nap',{date,start:'10:00',end:'11:00'}),command(3,'bedtime',{date,time:'19:30',base:null}),command(4,'awakePeriod',{date,base:null,label:'Doctor',start:'14:00',end:'14:30'}),s=>command(5,'pinNap',{date,base:s.revisions.planning,ordinal:2,start:'13:00',minutes:60}),s=>command(6,'resetPlanning',{date,base:s.revisions.planning})]);

@@ -347,8 +347,8 @@ test('a new pin against a locked schedule is pending until the displayed nap mat
  s.run(`render();S.approved=WW.approval.saveApproval(S,currentPlan,clock());
    S.day.planning={awake:[],pins:[{id:'pin',ordinal:3,start:at('16:30'),minutes:90,anchors:[]}]};
    render()`);
- assert.match(timelineRow(s,'Nap 3'),/Next · Pin pending/);
- assert.match(timelineRow(s,'Nap 3'),/4:15 PM.*5:30 PM/);
+ assert.match(timelineRow(s,'Nap 3'),/Next · Pinned/);
+ assert.match(timelineRow(s,'Nap 3'),/4:30 PM.*6:00 PM/);
  s.run('S.approved=WW.approval.saveApproval(S,displayedReview.proposal,clock());render()');
  assert.match(timelineRow(s,'Nap 3'),/Next · Pinned/);
  assert.match(timelineRow(s,'Nap 3'),/4:30 PM.*6:00 PM/);
