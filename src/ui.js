@@ -6,10 +6,42 @@ const clock=()=>S.mode==='demo'?S.now:Date.now();
 const fmt=t=>new Intl.DateTimeFormat('en-US',{timeZone:S.settings.timezone,hour:'numeric',minute:'2-digit'}).format(new Date(t));
 const dur=m=>m>=60?`${Math.floor(m/60)}h${m%60?' '+m%60+'m':''}`:`${m}m`;
 function toast(t){$('toast').textContent=t;$('toast').style.display='block';setTimeout(()=>$('toast').style.display='none',5000);}
-function request(action,data={}){return new Promise((resolve,reject)=>{const id=++seq;pending[id]={resolve,reject};window.__queue.push({id,action,data});if(window.__waiter){const f=window.__waiter;window.__waiter=null;f(window.__queue.shift());}});}
-window.receive=function(r){if(r.snapshot){S=r.snapshot;render();}const p=pending[r.id];delete pending[r.id];if(p){if(r.error){const e=Error((r.saveConfirmed?'Save confirmed locally; updated view could not be read. ':'')+r.error);e.saveConfirmed=!!r.saveConfirmed;p.reject(e);}else p.resolve(r);}};
+let stoppedReason='',needsRefresh=false;
+function request(action,data={}){
+  if(stoppedReason)return Promise.reject(Error(stoppedReason));
+  if(needsRefresh&&action!=='load')return Promise.reject(Error('Refresh Shared Day to check the last save first.'));
+  return new Promise((resolve,reject)=>{
+    const id=++seq;
+    const timer=setTimeout(()=>{
+      window.__queue=window.__queue.filter(c=>c.id!==id);
+      delete pending[id];
+      needsRefresh=true;
+      reject(Error('The dashboard timed out waiting for a response. Refresh Shared Day to check what was saved.'));
+    },30000);
+    pending[id]={resolve,reject,timer,action};
+    window.__queue.push({id,action,data});
+    if(window.__waiter){const send=window.__waiter;window.__waiter=null;send(window.__queue.shift());}
+  });
+}
+window.receive=function(r){
+  const p=pending[r.id];
+  if(!p)return;
+  clearTimeout(p.timer);
+  delete pending[r.id];
+  try{
+    if(r.error)throw Error(r.error);
+    if(r.snapshot){S=r.snapshot;render();}
+    if(p.action==='load'&&r.snapshot)needsRefresh=false;
+    p.resolve(r);
+  }catch(cause){
+    needsRefresh=needsRefresh||!!r.saveConfirmed;
+    const error=Error((r.saveConfirmed?'Save confirmed locally; updated view could not be read. ':'')+cause.message);
+    error.saveConfirmed=!!r.saveConfirmed;
+    p.reject(error);
+  }
+};
 async function act(action,data={},close=true){document.body.classList.add('native-busy');lastOperation=action==='load'?'Reading shared files on this phone…':'Saving on this phone…';$('operationState').textContent=lastOperation;try{const r=await request(action,data);lastOperation=action==='load'?'Read completed.':r.saveConfirmed?'Save confirmed on this phone.':'No new write was needed.';if(close)closeSheet();if(r.message)toast(r.message);return r;}catch(e){lastOperation=(e.saveConfirmed?'':'Not confirmed: ')+e.message+' Refresh before retrying a save.';$('modalError').textContent=e.message;toast(e.message);return null;}finally{document.body.classList.remove('native-busy');$('operationState').textContent=lastOperation;}}
-function connectionStopped(message){lastOperation=message+' A pending save may have succeeded; reopen and check before repeating it.';$('operationState').textContent=lastOperation;for(const id of Object.keys(pending)){pending[id].reject(Error(lastOperation));delete pending[id];}document.body.classList.remove('native-busy');toast(lastOperation);}
+function connectionStopped(message){stoppedReason=message;window.__queue=[];lastOperation=message+' A pending save may have succeeded; reopen and check before repeating it.';$('operationState').textContent=lastOperation;for(const id of Object.keys(pending)){clearTimeout(pending[id].timer);pending[id].reject(Error(lastOperation));delete pending[id];}document.body.classList.remove('native-busy');toast(lastOperation);}
 function openSheet(title,body,actions=''){lastFocus=document.activeElement;$('modalTitle').textContent=title;$('modalBody').innerHTML=body;$('modalActions').innerHTML=actions;$('modalActions').hidden=!actions;$('modalError').textContent='';$('backdrop').classList.add('open');$('modal').classList.add('open');document.body.classList.add('sheet-open');$('modalScroll').scrollTop=0;}
 function closeSheet(){window.pendingDeletion=null;$('backdrop').classList.remove('open');$('modal').classList.remove('open');document.body.classList.remove('sheet-open');if(lastFocus)lastFocus.focus();}
 document.addEventListener('keydown',e=>{if(e.key==='Escape')closeSheet();});

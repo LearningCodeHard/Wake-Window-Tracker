@@ -14,7 +14,15 @@ async function runWakeWindow(runtime={}) {
   function record(entity,value,base,deleted=false){return {schema:1,id:uuid(),entity,value,base:base||null,deleted,at:new Date(now()).toISOString(),device:demo?'demo':device()};}
   const path=(a,b)=>fm.joinPath(a,b);
   function dir(name){const p=path(root,name);if(!fm.fileExists(p))fm.createDirectory(p,true);return p;}
-  async function readFile(p){await fm.downloadFileFromiCloud(p);return JSON.parse(fm.readString(p));}
+  // Record filenames are immutable. Still list the folder on every refresh to discover other devices' edits.
+  const recordCache=new Map();
+  async function readFile(p){
+    if(recordCache.has(p))return recordCache.get(p);
+    if(!fm.isFileDownloaded || !fm.isFileDownloaded(p))await fm.downloadFileFromiCloud(p);
+    const value=JSON.parse(fm.readString(p));
+    recordCache.set(p,value);
+    return value;
+  }
   async function readRecords(selectedDate){
     if(demo)return demoRecords.filter(r=>r.entity==='settings'||r.entity.includes(selectedDate));
     const configPath=dir('settings'),eventPath=dir('events');

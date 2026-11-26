@@ -8,7 +8,7 @@ function screen(){
  register(html);
  const document={getElementById:id=>node(id),documentElement:{dataset:{}},body:node('body'),activeElement:null,addEventListener(){}};
  const localStorage={getItem:()=>null,setItem(){}};
- const context={document,localStorage,Intl,Date,console,setInterval(){},setTimeout:f=>f(),confirm:()=>{throw Error('Browser confirmation is unavailable in this host');}};context.window=context;vm.createContext(context);
+ const context={document,localStorage,Intl,Date,console,setInterval(){},clearTimeout(){},setTimeout:(f,ms)=>{if(ms!==30000)f();else context.fireTimeout=f;},confirm:()=>{throw Error('Browser confirmation is unavailable in this host');}};context.window=context;vm.createContext(context);
  for(const m of html.matchAll(/<script>([\s\S]*?)<\/script>/g))vm.runInContext(m[1],context);
  return {context,nodes,run:s=>vm.runInContext(s,context)};
 }
@@ -352,4 +352,20 @@ test('a new pin against a locked schedule is pending until the displayed nap mat
  s.run('S.approved=WW.approval.saveApproval(S,displayedReview.proposal,clock());render()');
  assert.match(timelineRow(s,'Nap 3'),/Next · Pinned/);
  assert.match(timelineRow(s,'Nap 3'),/4:30 PM.*6:00 PM/);
+});
+
+test('lost save reply releases busy state and requires a refresh before another write',async()=>{
+ const s=screen(),save=s.run("act('morning')");
+ s.context.__queue.shift();s.context.fireTimeout();await save;
+ assert.ok(!s.nodes.get('body').classList.contains('native-busy'));
+ await s.run("act('morning')");assert.equal(s.context.__queue.length,0);
+ const refresh=s.run("act('load')"),q=s.context.__queue.shift();
+ s.run('window.receive({id:'+q.id+',snapshot:S})');await refresh;
+ assert.equal(s.run('needsRefresh'),false);
+});
+test('a failed render settles a confirmed save and clears busy state',async()=>{
+ const s=screen(),save=s.run("act('nap')"),q=s.context.__queue.shift();
+ s.run("render=()=>{throw Error('render failed')};receive({id:"+q.id+",snapshot:S,saveConfirmed:true})");
+ await save;assert.match(s.nodes.get('modalError').textContent,/Save confirmed locally/);
+ assert.ok(!s.nodes.get('body').classList.contains('native-busy'));
 });
