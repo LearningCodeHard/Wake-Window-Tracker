@@ -1,0 +1,354 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name="color-scheme" content="light dark"><title>Budget Planner</title>
+<style>
+:root{color-scheme:light dark;--bg:#f5f0e8;--panel:#fffcf7;--ink:#382f25;--soft:#756653;--line:#dfd3c3;--accent:#855923;--tint:#eee0c8;--bad:#a7333f;--badbg:#ffebe8;--good:#256448}
+@media(prefers-color-scheme:dark){:root{--bg:#201d19;--panel:#2b2721;--ink:#f1e8da;--soft:#c6b69d;--line:#4b4134;--accent:#e9ba77;--tint:#443620;--bad:#ffadb6;--badbg:#42272b;--good:#94d6b1}}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.45 -apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;-webkit-text-size-adjust:100%}main{max-width:700px;margin:auto;padding:22px 20px calc(35px + env(safe-area-inset-bottom));font-variant-numeric:tabular-nums}h1,h2,h3,p{margin:0}h1{font-size:23px;letter-spacing:-.6px}h2{font-size:17px}h3{font-size:15px}small,.muted{color:var(--soft);font-size:12px}.eyebrow{color:var(--soft);font-size:11px;letter-spacing:1.4px;text-transform:uppercase;margin-bottom:4px}.top,.row,.section-head{display:flex;justify-content:space-between;gap:12px;align-items:center}.top{margin-bottom:18px}.section-head{margin:20px 0 10px}.tabs{display:flex;border-bottom:1px solid var(--line);gap:8px;margin:10px 0 20px}.tabs button{border:0;border-bottom:3px solid transparent;border-radius:0;background:transparent;flex:1}.tabs button[aria-selected=true]{border-bottom-color:var(--accent);color:var(--accent)}button,input,select,textarea{font:inherit}button{padding:9px 12px;min-height:44px;border:1px solid var(--line);border-radius:9px;background:var(--panel);color:var(--ink);touch-action:manipulation}button:disabled{opacity:.5}button:focus-visible,input:focus-visible,select:focus-visible{outline:2px solid var(--accent);outline-offset:3px}.primary,button[aria-pressed=true]{background:var(--accent);border-color:var(--accent);color:var(--bg)}.link{background:none;border:0;color:var(--accent);padding:6px}.danger,.negative{color:var(--bad)}.positive{color:var(--good)}.header-grid{display:grid;grid-template-columns:minmax(0,1fr) 151px;align-items:center;gap:15px;padding:6px 0 20px;border-bottom:2px solid var(--accent)}.big{font-family:Georgia,serif;font-size:clamp(30px,8vw,48px);letter-spacing:-1px;overflow-wrap:anywhere}.calendar{font-size:10px;text-align:center}.calendar .month{font-size:11px;font-weight:600;margin-bottom:8px}.calendar .grid{display:grid;grid-template-columns:repeat(7,1fr);gap:3px}.calendar .grid span{padding:2px 0;min-width:0}.calendar .today{background:var(--accent);color:var(--bg);border-radius:5px}.notice{margin:15px 0;background:var(--badbg);color:var(--bad);padding:12px 14px;border-radius:12px;font-size:13px}.notice strong{display:block}.notice.neutral{background:var(--tint);color:var(--ink)}.panel{background:var(--panel);border:1px solid var(--line);border-radius:15px;padding:15px;margin:15px 0}.ranges{display:flex;gap:5px;margin:14px 0 4px;flex-wrap:wrap}.ranges button{flex:1;min-width:48px;padding:6px;font-size:12px}.chart{height:220px;width:100%;touch-action:pan-y;user-select:none;-webkit-user-select:none;display:block}.chart text{fill:var(--soft);font:11px -apple-system,sans-serif}.chart .line{stroke:var(--accent);stroke-width:2.5;fill:none;stroke-linejoin:round}.chart .original{stroke:var(--soft);stroke-width:1.5;stroke-dasharray:4 4;fill:none}.chart .gridline{stroke:var(--line);stroke-width:1}.chart .zero{stroke:var(--bad);stroke-dasharray:4 4;stroke-width:1}.chart .guide{stroke:var(--accent);stroke-width:1}.chart .marker{fill:var(--accent)}.readout{min-height:85px;border-top:1px solid var(--line);padding-top:11px;font-size:13px}.readout strong{font-size:17px}.metrics{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:12px}.metrics>div+div{border-left:1px solid var(--line);padding-left:12px}.value{font-size:22px;letter-spacing:-.6px;overflow-wrap:anywhere}.event{display:flex;justify-content:space-between;gap:10px;padding:12px 0;border-bottom:1px solid var(--line)}.event:last-child{border:0}.event .amount{text-align:right;white-space:nowrap}.actions{display:flex;flex-wrap:wrap;gap:8px}.actions button{flex:1;min-width:90px}.fields{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin:12px 0}label{display:block;color:var(--soft);font-size:12px}input:not([type=checkbox]),select,textarea{display:block;width:100%;min-width:0;margin-top:5px;padding:10px;background:var(--bg);color:var(--ink);border:1px solid var(--line);border-radius:8px;font-size:16px;min-height:44px}input[type=checkbox]{accent-color:var(--accent);width:19px;height:19px}.check{display:flex;align-items:center;gap:7px;min-height:44px}.months{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}.month-card{border:1px solid var(--line);border-radius:11px;padding:10px 8px;background:var(--panel)}.month-card strong{display:block;font-size:16px;margin-top:7px;overflow-wrap:anywhere}.ledger-day{padding:12px 0 12px 15px;border-left:1px solid var(--line);margin-left:4px}.ledger-day .event{font-size:13px;padding:8px 0}.ledger-day .row strong{font-size:13px}.badge{font-size:10px;color:var(--soft);border:1px solid var(--line);padding:2px 5px;border-radius:4px;margin-left:5px}dialog{position:fixed;max-height:88dvh;overflow:auto;width:calc(100% - 24px);max-width:560px;border:1px solid var(--line);border-radius:18px;background:var(--panel);color:var(--ink);padding:20px}dialog::backdrop{background:#0008}dialog .actions{margin-top:20px}dialog .fields{grid-template-columns:1fr 1fr}.full{grid-column:1/-1}.help{font-size:12px;color:var(--soft);margin:8px 0}.error{color:var(--bad);font-size:13px;white-space:pre-wrap;margin:10px 0}.footer{text-align:center;color:var(--soft);font-size:11px;margin-top:22px}.selected-day{margin-bottom:6px}#status{font-size:11px;color:var(--soft)}[hidden]{display:none!important}@media(max-width:355px){main{padding:18px 12px}.header-grid{grid-template-columns:minmax(0,1fr) 134px;gap:8px}.months{gap:4px}.month-card{padding:8px 5px}.month-card strong{font-size:14px}}@media(min-resolution:3dppx) and (max-width:380px){.big{font-size:34px}}@media(min-width:600px){.chart{height:260px}}
+@media(prefers-reduced-motion:no-preference){button{transition:background .12s}}
+.row,.section-head{flex-wrap:wrap}.row>*,.event>div{min-width:0}.event>div:first-child{overflow-wrap:anywhere}.event .amount{flex-shrink:0}.fields{grid-template-columns:repeat(2,minmax(0,1fr))}.fields label{min-width:0}.captured-text{white-space:pre-wrap;overflow-wrap:anywhere;font:inherit;font-size:13px}.calendar .grid .muted{font-size:10px}input[type=date]{max-width:100%;-webkit-appearance:none;appearance:none;min-height:44px}dialog{max-height:88vh;max-height:88dvh}.readout{overflow-wrap:anywhere}.header-grid>section{min-width:0}#through{white-space:normal}#capture-count{font-variant-numeric:tabular-nums}
+@media(max-width:359px){.header-grid{grid-template-columns:1fr}.calendar{width:151px;justify-self:end}.fields,dialog .fields{grid-template-columns:1fr}.months{grid-template-columns:1fr}.month-card{display:flex;justify-content:space-between;align-items:center}.month-card strong{margin:0}.event{flex-wrap:wrap}.event .amount{text-align:left;white-space:normal}}
+
+/* Reserve room for Scriptable’s Close and Share overlay, including notched displays. */
+main{padding-top:72px;padding-top:max(72px,calc(env(safe-area-inset-top, 0px) + 52px))}
+#save-buffer{margin-top:10px}#save-buffer+hr{margin-block:10px}#manage{display:block;width:100%;margin-bottom:8px}
+.budget-card .value{font-size:17px}.budget-card .help{margin-bottom:0}
+</style></head><body><main>
+<header class="top"><div><div class="eyebrow">Budget Planner</div><h1>Your money, ahead.</h1></div><button id="settings">Settings</button></header>
+<div id="status" role="status" aria-live="polite"></div><button id="reload-saved" hidden>Reload saved data</button><div id="banner"></div>
+<nav class="tabs" role="tablist" aria-label="Dashboard view"><button role="tab" id="tab-horizon" aria-controls="horizon" aria-selected="true">Horizon</button><button role="tab" id="tab-ledger" aria-controls="ledger" aria-selected="false">Ledger</button><button role="tab" id="tab-budgets" aria-controls="budgets" aria-selected="false">Budgets</button></nav>
+<div class="header-grid"><section><div class="eyebrow">Checking · starting balance</div><div class="big" id="balance"></div><div class="muted" id="verified"></div><button class="link" id="update-balance">Update balance</button></section><aside class="calendar" id="calendar" aria-label="Current month calendar"></aside></div>
+<div id="outlook-warning"></div>
+<div class="ranges" aria-label="Forecast period"><button data-days="30">30 days</button><button data-days="60">60 days</button><button data-days="90">90 days</button><button data-days="180">6 months</button><button data-days="365">1 year</button></div>
+<section id="horizon" role="tabpanel" aria-labelledby="tab-horizon"><div class="panel"><div class="row"><h2>Balance outlook</h2><small id="through"></small></div><svg id="chart" class="chart" role="img" aria-label="Projected daily closing balance. Use the date input below to inspect a day."></svg><p class="help" id="chart-legend">Daily closing balance</p><div class="readout" id="readout" aria-live="polite"></div><label>Inspect a date<input type="date" id="inspect-date"></label><div class="metrics" id="metrics"></div></div><div class="section-head"><h2>Next three month endings</h2></div><p class="help">Includes dates beyond the selected graph period.</p><div class="months" id="months"></div><div class="section-head"><h2>Coming up</h2><small>Next 8 transactions</small></div><div id="upcoming"></div></section>
+<section id="ledger" role="tabpanel" aria-labelledby="tab-ledger" hidden><div class="section-head"><button id="previous-month" aria-label="Previous month">‹</button><h2 id="ledger-month"></h2><button id="next-month" aria-label="Next month">›</button></div><div id="ledger-summary" class="muted"></div><div id="ledger-events"></div></section>
+<section id="budgets" role="tabpanel" aria-labelledby="tab-budgets" hidden>
+<div class="section-head"><h2>Monthly budgets</h2><button id="log-spending">Log spending</button></div>
+<label>Budget month<input id="budget-month" type="month" min="2000-01" max="2100-12"></label>
+<p class="help">Projected spending combines recorded spending and unpaid items scheduled for this month.</p>
+<div id="budget-categories"></div>
+<div class="section-head"><h2>Scheduled spending</h2></div><div id="budget-planned"></div>
+<div class="section-head"><h2>Recorded spending</h2></div><div id="budget-actual"></div>
+</section>
+<section class="panel" id="purchase-preview" aria-label="Purchase preview"><div class="row"><h2>Purchase preview</h2><label class="check"><input type="checkbox" id="preview-enabled">Try it</label></div><div class="fields"><label>Amount ($)<input id="preview-amount" type="number" min="0" step="0.01" inputmode="decimal" value="800"></label><label>Purchase date<input id="preview-date" type="date"></label></div><div id="preview-result" aria-live="polite"></div><p class="help">Temporary scenario. Your saved plan stays unchanged.</p></section>
+<div class="section-head"><h2>Your plan</h2></div><button id="manage">Manage entries</button><div class="actions"><button id="add-income">Add income</button><button id="add-bill">Add bill</button><button id="add-spending">Add spending</button></div>
+<div class="footer">Budget Planner /*APP_VERSION*/ · On this iPhone<br>Daily closing balances · bank posting order may differ</div>
+<dialog id="editor" aria-labelledby="editor-title"><form id="edit-form"><div class="dialog-status muted" role="status"></div><div class="row"><h2 id="editor-title"></h2><button type="button" id="close-editor" aria-label="Close editor">×</button></div><div id="editor-fields"></div><div class="error" id="form-error" role="alert"></div><div class="actions"><button type="button" id="delete-entry" class="danger" hidden>Delete entry</button><button class="primary" type="submit" id="save-entry">Save</button></div></form></dialog>
+<dialog id="manager" aria-labelledby="manage-title"><div class="dialog-status muted" role="status"></div><div class="row"><h2 id="manage-title">Your entries</h2><button id="close-manager" aria-label="Close entries">×</button></div><div class="actions"><button id="add-financing">Add financing</button></div><div id="entry-list"></div></dialog>
+<dialog id="preferences" aria-labelledby="prefs-title"><div class="dialog-status muted" role="status"></div><div class="row"><h2 id="prefs-title">Settings & backups</h2><button id="close-settings" aria-label="Close settings">×</button></div><p class="help">Your saved starting balance anchors the plan. A checking snapshot is the balance at import time; the forecast starts counting scheduled entries the following day. Set aside everyday spending with recurring spending entries.</p><label>Minimum balance buffer ($)<input type="number" min="0" step="0.01" id="buffer"></label><button class="primary" id="save-buffer">Save buffer</button><hr><div class="actions"><button id="export">Export backup</button><button id="restore">Restore backup</button></div><p class="help">Export to Files before changing phones or deleting Scriptable. Restoring replaces this plan after confirmation.</p><button id="captures">Review captured text (<span id="capture-count">0</span>)</button><p class="help">Text sent by a Shortcut is held for review. It does not change financial values automatically.</p><p class="help">Local data only. No bank connection or automatic device sharing.</p></dialog>
+<dialog id="inbox" aria-labelledby="inbox-title"><div class="dialog-status muted" role="status"></div><div class="row"><h2 id="inbox-title">Captured updates</h2><button id="close-inbox" aria-label="Close captured updates">×</button></div><div id="capture-list"></div></dialog>
+<script>/*SHARED_ENGINE*/
+</script><script>
+window.IS_NATIVE=true;window.INITIAL=/*INITIAL_STATE*/;window.BALANCE_IMPORT=/*BALANCE_IMPORT*/;
+(() => {
+  'use strict';
+  const $=id=>document.getElementById(id), B=Budget;
+  const money=n=>new Intl.NumberFormat('en-US',{style:'currency',currency:'USD',maximumFractionDigits:n%100?2:0}).format(n/100);
+  const label=(d,opts={month:'short',day:'numeric'})=>B.date(d).toLocaleDateString('en-US',{...opts,timeZone:'UTC'});
+  const escape=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+  const negative=n=>n<0?'negative':'';
+  const budgetData=s=>s.budget||(s.budget={goals:{},actual:[]});
+  const presets=[
+    ['Mortgage','housing'],['Rent','housing'],['Groceries','groceries'],
+    ['Vehicle payment','transportation'],['Utilities','utilities'],['Insurance','insurance'],
+    ['Fuel','transportation'],['Subscriptions','subscriptions']
+  ];
+  const categoryOptions=Object.entries(B.categories);
+  const tabs=['horizon','ledger','budgets'];
+  let budgetMonth=B.today().slice(0,7)+'-01', budgetView;
+  let state=B.validate(B.clone(window.INITIAL)), days=90, selected=B.today()>state.balance.date?B.today():state.balance.date, month=B.today().slice(0,7)+'-01', view='horizon', result, baseline, extended, start, editing, busy=false;
+  let scenario={enabled:false,cents:80000,date:B.add(B.today(),1)},chartSize={},ledgerVisited=false;
+  let bridgeID=0, uncertain=false, managerScroll=0;const promises=new Map(),queue=[];
+  window.budgetTake=()=>queue.shift()||null;
+  function request(action,payload){return new Promise((resolve,reject)=>{
+    if(!window.IS_NATIVE){reject(Error('Open this dashboard in Scriptable to save.'));return;}
+    const id=++bridgeID, limit=['export','restore'].includes(action)?300000:12000;
+    const timer=setTimeout(()=>{
+      promises.delete(id);
+      const i=queue.findIndex(c=>c.id===id);if(i>=0)queue.splice(i,1);
+      if(i<0&&['save','restore'].includes(action))uncertain=true;
+      reject(Error(i>=0?'Scriptable did not pick up the request. No change was sent.':action==='export'?'Scriptable did not confirm the export.':'Scriptable did not confirm the result. Reload saved data before editing again.'));
+    },limit);
+    promises.set(id,{resolve,reject,timer});queue.push({id,action,payload,expiresAt:Date.now()+limit});
+  });}
+  window.budgetReply=(id,response)=>{
+    const p=promises.get(id);if(!p)return true;
+    clearTimeout(p.timer);promises.delete(id);
+    response.ok?p.resolve(response):p.reject(Error(response.error));return true;
+  };
+  function status(s){
+    $('status').textContent=s;
+    document.querySelectorAll('.dialog-status').forEach(el=>el.textContent=s);
+    $('reload-saved').hidden=!uncertain;
+  }
+  function setBusy(value){
+    busy=value;
+    document.querySelectorAll('button,input,select,textarea').forEach(b=>{
+      if(b.getAttribute('aria-label')?.startsWith('Close'))return;
+      if(value){b.dataset.wasDisabled=String(b.disabled);b.disabled=true;}
+      else if(b.dataset.wasDisabled!==undefined){b.disabled=b.dataset.wasDisabled==='true';delete b.dataset.wasDisabled;}
+    });
+  }
+  async function commit(next){
+    if(busy)throw Error('A save is already in progress.');
+    if(uncertain)throw Error('Close this editor and tap Reload saved data before trying again.');
+    B.validate(next);setBusy(true);status('Saving…');
+    try{
+      const reply=await request('save',{state:next,revision:state.revision});
+      state=B.validate(reply.state);render();status('Saved on this iPhone · '+new Date().toLocaleTimeString([], {hour:'numeric',minute:'2-digit'}));
+    }catch(e){status(e.message);throw e;}
+    finally{setBusy(false);renderLedger();}
+  }
+  $('reload-saved').onclick=async()=>{
+    if(busy)return;setBusy(true);
+    try{const reply=await request('reload',{});state=B.validate(reply.state);uncertain=false;render();status('Reloaded saved data from this iPhone.');}
+    catch(e){status(e.message);}
+    finally{setBusy(false);renderLedger();}
+  };
+  function renderCalendar(){const now=B.today(),d=B.date(now),y=d.getUTCFullYear(),m=d.getUTCMonth(),n=new Date(Date.UTC(y,m+1,0)).getUTCDate(),offset=(new Date(Date.UTC(y,m,1)).getUTCDay()+6)%7;
+    $('calendar').innerHTML='<div class="month">'+label(now,{month:'short',year:'numeric'})+'</div><div class="grid">'+['M','T','W','T','F','S','S'].map(t=>'<span class="muted">'+t+'</span>').join('')+'<span></span>'.repeat(offset)+Array.from({length:n},(_,i)=>'<span '+(i+1===d.getUTCDate()?'class="today" aria-current="date"':'')+'>'+(i+1)+'</span>').join('')+'</div>';
+  }
+  function render(){
+    start=B.today()>state.balance.date?B.today():state.balance.date;
+    baseline=B.forecast(state,days,undefined,start);result=B.forecast(state,days,scenario,start);extended=B.forecast(state,366,scenario,start);
+    if(selected<start||selected>result.end.date)selected=start;
+    const firstMonth=start.slice(0,7)+'-01',lastMonth=result.end.date.slice(0,7)+'-01';if(month<firstMonth)month=firstMonth;if(month>lastMonth)month=lastMonth;
+    const snapshot=state.balance.basis==='checking_snapshot';
+    $('balance').textContent=money(state.balance.cents);$('verified').textContent=(snapshot?'Checking snapshot · ':'Closing balance · ')+label(state.balance.date,{month:'short',day:'numeric',year:'numeric'});
+    $('banner').innerHTML=state.sample?'<div class="notice neutral"><strong>Your starter plan</strong>Loaded with starter figures. Add any other income and spending, then verify your balance.</div>':'';
+    if(snapshot&&result.checking.length){
+      const review=result.unreviewedChecking.length;
+      $('banner').innerHTML='<details class="notice'+(review?'':' neutral')+'"><summary>'+(review?review+' same-day items need review':'Checking activity reviewed')+'</summary><p class="help">Mark each item Posted if it is reflected in the snapshot, or Pending to include it in the forecast.</p>'+result.checking.map(eventHTML).join('')+'</details>';
+    }
+    renderCalendar();
+    const applied=scenario.enabled&&scenario.date>state.balance.date&&scenario.date<=result.end.date;
+    const w=result.first||result.below;
+    $('outlook-warning').innerHTML=w?'<div class="notice"><strong>'+(result.first?'Shortfall '+(w.date===start?'on ':'starts '):'Below your buffer on ')+label(w.date)+'</strong>'+money(w.cents)+(snapshot&&w.date===state.balance.date&&!w.events.length?' at snapshot':' projected at day end')+(applied?' · purchase preview included':'')+'.</div>':result.unreviewedChecking.length?'<div class="notice">Review same-day checking items before relying on the projected balance.</div>':'<div class="notice neutral">Projected balances stay '+(state.buffer?'at or above your '+money(state.buffer)+' buffer':'at or above zero')+' in this forecast.</div>';
+    document.querySelectorAll('[data-days]').forEach(b=>b.setAttribute('aria-pressed',Number(b.dataset.days)===days));
+    $('through').textContent=label(start)+' – '+label(result.end.date);
+    $('chart-legend').textContent=scenario.enabled?'Solid: purchase scenario · dashed: original plan':(snapshot&&start===state.balance.date?'Starts with checking snapshot · drag to inspect':'Daily closing balance · drag horizontally to inspect');
+    $('metrics').innerHTML='<div><small>Lowest · '+label(result.min.date)+'</small><div class="value '+negative(result.min.cents)+'">'+money(result.min.cents)+'</div></div><div><small>Ending · '+label(result.end.date)+'</small><div class="value '+negative(result.end.cents)+'">'+money(result.end.cents)+'</div></div>';
+    $('inspect-date').min=start;$('inspect-date').max=result.end.date;$('inspect-date').value=selected;
+    $('preview-date').min=B.add(state.balance.date,1);
+    const a=B.date(start),monthEnds=Array.from({length:3},(_,i)=>B.iso(new Date(Date.UTC(a.getUTCFullYear(),a.getUTCMonth()+i+1,0))));
+    $('months').innerHTML=monthEnds.map(d=>{const day=fullPoint(d);return '<div class="month-card"><small>'+label(d,{month:'short'})+' ending</small><strong class="'+negative(day.cents)+'">'+money(day.cents)+'</strong></div>';}).join('');
+    const upcoming=result.events.filter(e=>e.date>=B.today()).slice(0,8);
+    $('upcoming').innerHTML=upcoming.length?upcoming.map(eventHTML).join(''):'<p class="muted">No upcoming entries in this period. Add income, bills, or planned spending below.</p>';
+    const validPreview=scenario.date>state.balance.date&&scenario.date<=result.end.date;
+    $('preview-result').innerHTML=scenario.enabled?(validPreview?'<div class="row"><span>Lowest after purchase</span><strong class="'+negative(result.min.cents)+'">'+money(result.min.cents)+'</strong></div><small>Baseline '+money(baseline.min.cents)+' · '+money(result.min.cents-baseline.min.cents)+' change</small>':'<p class="error">'+(scenario.date<=state.balance.date?'Choose a date after the starting balance.':'Purchase is outside this forecast. Extend the period to include it.')+'</p>'):'<span class="muted">Try a purchase to compare both forecasts.</span>';
+    renderLedger();drawChart();renderEntries();renderInbox();if(view==='budgets')renderBudgets();
+  }
+  function fullPoint(d){const p=extended.points.find(p=>p.date===d);if(!p)throw Error('Date is outside this forecast.');return p;}
+  function renderInbox(){const items=state.integrations?.inbox||[];$('capture-count').textContent=String(items.length);$('capture-list').innerHTML=items.map(i=>'<section class="panel"><strong>'+escape(i.source)+'</strong><div class="muted">'+escape(new Date(i.capturedAt).toLocaleString())+'</div><pre class="captured-text">'+escape(i.text)+'</pre><p class="help">Review this text and use Update balance or Change payment to apply a verified value.</p><button data-dismiss="'+i.id+'">Dismiss</button></section>').join('')||'<p class="help">No pending screen-text updates.</p>';}
+  function eventHTML(e){return '<div class="event"><div>'+escape(e.name)+(e.estimated?'<span class="badge">Estimate</span>':'')+'<div class="muted">'+label(e.date)+(e.changed?' · adjusted':'')+'</div></div><div class="amount"><span class="'+(e.cents>=0?'positive':'')+'">'+(e.cents>0?'+':'')+money(e.cents)+'</span><br><button class="link" data-event="'+escape(e.key)+'">Change payment</button></div></div>';}
+  function renderEntries(){
+    $('entry-list').innerHTML=(state.rules.map(r=>'<div class="event"><div>'+escape(r.name)+'<div class="muted">'+({once:'One time',weekly:'Weekly',biweekly:'Every 2 weeks',semimonthly:'Twice monthly',monthly:'Monthly',yearly:'Yearly'}[r.frequency])+(r.installments?' · '+r.installments+' '+(r.installments===1?'payment':'payments')+' · last '+label(r.end,{month:'short',day:'numeric',year:'numeric'}):' · '+r.kind)+'</div></div><button class="link" data-rule="'+r.id+'">'+money(r.cents)+' · Edit</button></div>').join('')||'<p class="help">No entries yet.</p>')+ (Object.keys(state.overrides).length?'<h3 class="section-head">Individual payment changes</h3>'+Object.entries(state.overrides).map(([key,o])=>'<div class="event"><div>'+escape(state.rules.find(r=>key.startsWith(r.id+'@'))?.name||'Payment')+'<div class="muted">'+label(B.occurrenceRef(key).date)+' · '+(o.skip?'Skipped':'Adjusted')+'</div></div><button class="link" data-reset="'+escape(key)+'">Undo change</button></div>').join(''):'');
+  }
+  function renderBudgets(){
+    budgetView=B.monthlyBudget(state,budgetMonth);
+    const past=budgetMonth<B.today().slice(0,7)+'-01';
+    $('budget-categories').innerHTML=budgetView.rows.filter(r=>r.id!=='uncategorized'||r.recorded||r.planned).map(r=>{
+      const projected=r.actual+r.planned, variance=r.goal===null?null:r.goal-projected;
+      const delta=n=>n===0?'At goal':money(Math.abs(n))+(n<0?' over':' under');
+      return '<article class="panel budget-card"><div class="row"><h3>'+r.label+'</h3>'+
+        (r.id==='uncategorized'?'':'<button class="link" data-budget-goal="'+r.id+'">'+(r.goal===null?'Set goal':'Edit goal')+'</button>')+
+        '</div><div class="metrics"><div><small>Recorded</small><div class="value">'+
+        (r.recorded?money(r.actual):'No records')+'</div></div><div><small>'+(past?'Recorded + scheduled':'Projected month-end')+
+        '</small><div class="value">'+money(projected)+'</div></div></div>'+
+        (r.goal===null?'':'<p class="help">Goal '+money(r.goal)+(r.recorded?' · '+delta(r.goal-r.actual)+' recorded':'')+
+        ' · <strong class="'+negative(variance)+'">'+delta(variance)+' projected</strong></p>')+'</article>';
+    }).join('');
+    const item=(e,attr,key,text)=>'<div class="event"><div>'+escape(e.name)+'<div class="muted">'+
+      label(e.date)+' · '+B.categories[e.category]+'</div></div><div class="amount">'+money(Math.abs(e.cents))+
+      '<br><button class="link" '+attr+'="'+escape(key)+'">'+text+'</button></div></div>';
+    $('budget-planned').innerHTML=budgetView.planned.map(e=>item(e,'data-budget-pay',e.key,'Mark paid')).join('')||'<p class="help">No unpaid items scheduled this month.</p>';
+    $('budget-actual').innerHTML=budgetView.actual.map(e=>item(e,'data-budget-edit',e.id,'Edit')).join('')||'<p class="help">No spending recorded this month.</p>';
+  }
+  function renderLedger(){
+    const d=B.date(month),end=B.iso(new Date(Date.UTC(d.getUTCFullYear(),d.getUTCMonth()+1,0))),first=month>start?month:start,from=first>state.balance.date?first:B.add(state.balance.date,1),to=end<result.end.date?end:result.end.date;
+    $('ledger-month').textContent=label(month,{month:'long',year:'numeric'});
+    $('previous-month').disabled=busy||month<=start.slice(0,7)+'-01';$('next-month').disabled=busy||month>=result.end.date.slice(0,7)+'-01';
+    if(end<start||month>result.end.date){$('ledger-summary').textContent='This month is outside the selected forecast.';$('ledger-events').innerHTML='';return;}
+    const events=result.events.filter(e=>e.date>=first&&e.date<=to),groups=new Map();for(const e of events){if(!groups.has(e.date))groups.set(e.date,[]);groups.get(e.date).push(e);}
+    if(scenario.enabled&&scenario.date>state.balance.date&&scenario.date>=from&&scenario.date<=to){if(!groups.has(scenario.date))groups.set(scenario.date,[]);groups.get(scenario.date).push({name:'Purchase preview',date:scenario.date,cents:-scenario.cents,preview:true});}
+    $('ledger-summary').textContent='Through '+label(to)+' · '+money(fullPoint(to).cents)+' ending'+(scenario.enabled&&scenario.date>state.balance.date&&scenario.date<=to?' · includes preview':'');
+    $('ledger-events').innerHTML=[...groups].sort((a,b)=>a[0].localeCompare(b[0])).map(([day,es])=>'<div class="ledger-day"><div class="row"><strong>'+label(day)+'</strong><strong class="'+negative(fullPoint(day).cents)+'">'+money(fullPoint(day).cents)+' remaining</strong></div>'+es.map(e=>e.preview?'<div class="event"><span>Purchase preview</span><span>'+money(e.cents)+'</span></div>':eventHTML(e)).join('')+'</div>').join('')||'<p class="help">No scheduled activity after your starting balance in this part of the month.</p>';
+  }
+  function drawChart(){
+    const svg=$('chart');if(view!=='horizon')return;
+    const width=svg.clientWidth||320,height=svg.clientHeight||220,right=12,top=14,bottom=32;
+    const values=result.points.flatMap(p=>[p.base,p.cents]).concat([0,state.buffer]),lo=Math.min(...values),hi=Math.max(...values),pad=Math.max(100,(hi-lo)*.10),ymin=lo-pad,ymax=hi+pad;
+    const short=v=>new Intl.NumberFormat('en-US',{notation:'compact',maximumFractionDigits:1,style:'currency',currency:'USD'}).format(v/100);
+    const left=Math.min(95,Math.max(54,Math.max(...[hi,lo,0].map(v=>short(v).length))*7+10));
+    const x=i=>left+i/days*(width-left-right),y=n=>top+(ymax-n)/(ymax-ymin)*(height-top-bottom);
+    chartSize={width,left,right,x,y};const path=field=>result.points.map((p,i)=>i?'H'+x(i)+'V'+y(p[field]):'M'+x(0)+','+y(p[field])).join(' ');
+    let html='<title>Projected daily closing balances</title><desc>Drag horizontally or choose an inspection date for exact figures.</desc>';
+    const ticks=[0];for(const v of [hi,lo])if(ticks.every(t=>Math.abs(y(t)-y(v))>=18))ticks.push(v);
+    ticks.forEach(v=>{html+='<line x1="'+left+'" x2="'+(width-right)+'" y1="'+y(v)+'" y2="'+y(v)+'" class="'+(v===0?'zero':'gridline')+'"/><text x="'+(left-6)+'" y="'+(y(v)+4)+'" text-anchor="end">'+short(v)+'</text>';});
+    if(state.buffer)html+='<line class="gridline" x1="'+left+'" x2="'+(width-right)+'" y1="'+y(state.buffer)+'" y2="'+y(state.buffer)+'" stroke-dasharray="2 3"/>';
+    if(scenario.enabled)html+='<path class="original" d="'+path('base')+'"/>';
+    html+='<path class="line" d="'+path('cents')+'"/>';
+    [0,Math.floor(days/2),days].forEach((i,j)=>html+='<text x="'+x(i)+'" y="'+(height-8)+'" text-anchor="'+(j===0?'start':j===2?'end':'middle')+'">'+label(result.points[i].date)+'</text>');
+    html+='<line id="guide" class="guide" y1="'+top+'" y2="'+(height-bottom)+'"/><circle id="dot" class="marker" r="4"/>';
+    svg.setAttribute('viewBox','0 0 '+width+' '+height);svg.innerHTML=html;inspect(selected);
+  }
+  function inspect(d){selected=d;const p=result.points.find(p=>p.date===d)||result.points[0],i=result.points.indexOf(p),g=$('guide'),dot=$('dot');if(g&&dot){g.setAttribute('x1',chartSize.x(i));g.setAttribute('x2',chartSize.x(i));dot.setAttribute('cx',chartSize.x(i));dot.setAttribute('cy',chartSize.y(p.cents));}
+    $('inspect-date').value=p.date;
+    $('readout').innerHTML='<div class="row selected-day"><span>'+label(p.date,{weekday:'short',month:'short',day:'numeric'})+'</span><strong class="'+negative(p.cents)+'">'+money(p.cents)+'</strong></div>'+ (scenario.enabled?'<div class="muted">Original '+money(p.base)+' · after purchase '+money(p.cents)+'</div>':'')+ (p.events.length?p.events.map(e=>'<div>'+escape(e.name)+': '+(e.cents>0?'+':'')+money(e.cents)+(e.estimated?' (estimate)':'')+'</div>').join(''):'<span class="muted">'+(p.date===state.balance.date?(state.balance.basis==='checking_snapshot'?'Checking snapshot':'Verified starting balance'):'No scheduled activity')+'</span>')+(scenario.enabled&&p.date===scenario.date?'<div>Purchase preview: '+money(-scenario.cents)+'</div>':'');
+  }
+  // Horizontal chart inspection leaves vertical panning to the page.
+  let pointer=null;
+  const pointFromX=x=>Math.max(0,Math.min(days,Math.round((x-$('chart').getBoundingClientRect().left-chartSize.left)/($('chart').clientWidth-chartSize.left-chartSize.right)*days)));
+  $('chart').addEventListener('pointerdown',e=>{pointer={id:e.pointerId,x:e.clientX,y:e.clientY,horizontal:false};});
+  $('chart').addEventListener('pointermove',e=>{if(!pointer||e.pointerId!==pointer.id)return;const dx=Math.abs(e.clientX-pointer.x),dy=Math.abs(e.clientY-pointer.y);if(!pointer.horizontal){if(dy>8&&dy>dx){pointer=null;return;}if(dx<6)return;pointer.horizontal=true;$('chart').setPointerCapture(e.pointerId);}inspect(result.points[pointFromX(e.clientX)].date);});
+  $('chart').addEventListener('pointerup',e=>{if(pointer){inspect(result.points[pointFromX(e.clientX)].date);pointer=null;}});
+  $('chart').addEventListener('pointercancel',()=>{pointer=null;});
+  $('inspect-date').addEventListener('change',e=>{if(e.target.validity.valid&&e.target.value)inspect(e.target.value);});
+  const field=(name,title,type,value,extra='')=>'<label>'+title+'<input name="'+name+'" type="'+type+'" value="'+escape(value??'')+'" '+extra+'></label>';
+  const select=(name,title,options,value)=>'<label>'+title+'<select name="'+name+'">'+options.map(([v,t])=>'<option value="'+v+'" '+(v===value?'selected':'')+'>'+t+'</option>').join('')+'</select></label>';
+  function returnToEntries(){
+    const fromManager=editing?.fromManager;
+    $('editor').close();
+    if(fromManager){
+      renderEntries();
+      $('manager').showModal();
+      $('manager').scrollTop=managerScroll;
+    }
+  }
+  function openEditor(mode,data,fromManager=false){
+    if(busy)return;
+    if(uncertain){status('Reload saved data before editing again.');return;}
+    editing={mode,data,fromManager};$('form-error').textContent='';$('delete-entry').hidden=!['rule','financing','budget-spending'].includes(mode)||!data?.id;
+    if(mode==='budget-goal'){
+      $('editor-title').textContent=B.categories[data.category]+' monthly goal';
+      $('editor-fields').innerHTML=field('amount','Recurring monthly goal ($)','number',data.goal===null?'':data.goal/100,'min="0" step="0.01"')+
+        '<p class="help">Clear the amount to remove this category’s goal.</p>';
+    }
+    else if(mode==='budget-spending'){
+      $('editor-title').textContent=data.key&&!data.id?'Mark paid':data.id?'Edit recorded spending':'Log spending';
+      $('editor-fields').innerHTML='<div class="fields"><div class="full">'+field('name','Name','text',data.name||'','required maxlength="100"')+
+        '</div>'+select('category','Category',categoryOptions,data.category||'uncategorized')+
+        field('amount','Actual amount ($)','number',data.cents?Math.abs(data.cents)/100:'','required min="0.01" step="0.01"')+
+        field('date','Posting date','date',data.postedDate||B.today(),'required max="'+B.today()+'"')+
+        '</div><p class="help">Recorded spending updates this budget when saved.</p>';
+    }
+    else if(mode==='balance'){$('editor-title').textContent='Verify your closing balance';$('editor-fields').innerHTML='<div class="fields">'+field('amount','Closing balance ($)','number',state.balance.cents/100,'required step="0.01"')+field('date','End of day','date',state.balance.date,'required max="'+B.today()+'"')+'</div><p class="help">Use this form when you know the end-of-day balance. This amount includes all transactions through the chosen date. Only later transactions are forecast. For a mid-day bank balance, use the prior day’s closing balance so today’s pending bills are still counted.</p>';}
+    else if(mode==='import-balance'){
+      $('editor-title').textContent='Review screenshot balance';
+      const options=[['','Choose a detected amount']].concat(data.map((c,i)=>[String(i),escape(c.label+' · '+money(c.cents))]));
+      const pick=data.length===1?'0':'';
+      $('editor-fields').innerHTML='<p class="help">Confirm the checking or cash account you track here. A screenshot can show available credit, pending activity, or balances for several accounts.</p>'+
+        (data.length?select('candidate','Detected amounts',options,pick):'<p class="help">No labeled balance was found. Enter the amount manually.</p>')+
+        '<div class="fields">'+field('amount','Verified balance ($)','number',pick==='0'?(data[0].cents/100).toFixed(2):'','required step="0.01"')+
+        field('date','Closing date','date','','required max="'+B.today()+'"')+'</div>'+
+        '<label class="check"><input type="checkbox" name="verified" required>I verified this is my tracked account’s closing balance and includes all activity through the date selected.</label>'+
+        '<p class="help">Scheduled entries on or before the closing date will no longer be applied to the forecast. For a mid-day screenshot, use a verified prior closing balance if activity is still pending.</p>';
+      const form=$('edit-form').elements;
+      if(form.candidate)form.candidate.addEventListener('change',()=>{const c=data[form.candidate.value];form.amount.value=c?(c.cents/100).toFixed(2):'';form.verified.checked=false;});
+      for(const f of [form.amount,form.date])f.addEventListener('input',()=>{form.verified.checked=false;});
+    }
+    else if(mode==='event'){$('editor-title').textContent='Change this payment';const o=state.overrides[data.key];$('editor-fields').innerHTML='<p>'+escape(data.name)+'</p><div class="fields">'+field('amount','Actual / revised amount ($)','number',Math.abs(data.cents)/100,'required min="0" step="0.01"')+field('date','Payment date','date',data.date,'required')+'</div><label class="check"><input type="checkbox" name="confirmed" '+(o?.confirmed?'checked':'')+'>Amount confirmed</label><label class="check"><input type="checkbox" name="skip">Skip this occurrence</label><p class="help">Changes only this payment. Later recurring payments keep their schedule and amount. To reverse a saved adjustment, restore its original date and amount here.</p>'+(state.balance.basis==='checking_snapshot'&&data.date===state.balance.date?select('checking','Status at checking snapshot',[['','Needs review'],['pending','Pending'],['posted','Posted']],o?.snapshotDate===state.balance.date?o.checking:''):'');}
+    else if(mode==='financing'){
+      const r=data||{name:'',cents:0,start:B.add(B.today(),1),installments:6};
+      $('editor-title').textContent=r.id?'Edit financing':'Add financing';
+      $('editor-fields').innerHTML='<div class="fields"><div class="full">'+field('name','Name','text',r.name,'required maxlength="100"')+'</div>'+field('amount','Monthly payment ($)','number',r.cents?r.cents/100:'','required min="0.01" step="0.01"')+field('installments','Number of payments','number',r.installments,'required min="1" max="600" step="1"')+field('start','First payment date','date',r.start,'required')+'</div><p class="help" id="financing-end" aria-live="polite"></p><p class="help">Enter the monthly amount you plan to pay. If this payment is already part of a card bill in your plan, count it only once.</p>';
+      const f=$('edit-form').elements;
+      const showEnd=()=>{try{$('financing-end').textContent='Last payment: '+label(B.installmentEnd(f.start.value,Number(f.installments.value)),{month:'short',day:'numeric',year:'numeric'})+'.';}catch(_) {$('financing-end').textContent='';}};
+      for(const control of [f.start,f.installments])control.addEventListener('input',showEnd);
+      showEnd();
+    }
+    else {const r=data||{name:'',kind:'bill',cents:0,start:B.add(B.today(),1),frequency:'monthly',days:[1,15],estimated:false};$('editor-title').textContent=r.id?'Edit recurring entry':'Add '+r.kind;$('editor-fields').innerHTML='<div class="fields"><div class="full">'+field('name','Name','text',r.name,'required maxlength="100"')+'</div>'+field('amount','Amount ($)','number',r.cents?r.cents/100:'','required min="0.01" step="0.01"')+select('kind','Type',[['income','Income'],['bill','Bill'],['spending','Everyday spending']],r.kind)+field('start','First due date','date',r.start,'required')+select('frequency','Repeats',[['once','One time'],['weekly','Weekly'],['biweekly','Every 2 weeks'],['semimonthly','Twice monthly'],['monthly','Monthly'],['yearly','Yearly']],r.frequency)+field('day1','Twice monthly · first day','number',r.days?.[0]||1,'min="1" max="31"')+field('day2','Twice monthly · second day','number',r.days?.[1]||15,'min="1" max="31"')+field('end','Last due date (optional)','date',r.end||'')+'</div><label class="check"><input name="estimated" type="checkbox" '+(r.estimated?'checked':'')+'>Estimated amount</label><p class="help">Weekly spending can cover groceries, fuel, or other everyday costs. Short months use their last day for dates such as the 31st. Due dates are not moved for weekends or bank holidays.</p>';
+      const frequency=$('edit-form').elements.frequency;const sync=()=>{for(const key of ['day1','day2'])$('edit-form').elements[key].closest('label').hidden=frequency.value!=='semimonthly';};frequency.addEventListener('change',sync);sync();}
+    if(['rule','financing'].includes(mode)&&data?.kind!=='income'){
+      const r=data||{};
+      const suggested=r.id?'':select('preset','Suggested bill',[['','Custom'],...presets.map(([name],index)=>[String(index),name])],'');
+      $('editor-fields').insertAdjacentHTML('afterbegin',suggested);
+      $('editor-fields').insertAdjacentHTML('beforeend',select('category','Spending category',categoryOptions,r.category||'uncategorized')+
+        '<label class="check"><input type="checkbox" name="cardPayoff" '+(r.cardPayoff?'checked':'')+'>Card payoff for spending tracked separately</label>');
+      const form=$('edit-form').elements;
+      form.preset?.addEventListener('change',()=>{
+        const chosen=presets[form.preset.value];
+        form.name.value=chosen?.[0]||'';
+        form.category.value=chosen?.[1]||'uncategorized';
+        if(!chosen)form.name.focus();
+      });
+    }
+    $('editor').showModal();
+  }
+  $('edit-form').addEventListener('submit',async e=>{e.preventDefault();if(busy)return;try{const f=e.target.elements,next=B.clone(state),v=n=>f[n].value;next.sample=false;
+    if(editing.mode==='budget-goal'){
+      const budget=budgetData(next);
+      if(v('amount')==='')delete budget.goals[editing.data.category];
+      else budget.goals[editing.data.category]=B.cents(v('amount'));
+    }
+    else if(editing.mode==='budget-spending'){
+      if(!B.validDate(v('date'))||v('date')>B.today())throw Error('Choose today or an earlier posting date.');
+      const budget=budgetData(next),item={
+        id:editing.data.id||'spent_'+Date.now().toString(36)+Math.random().toString(36).slice(2),
+        name:v('name').trim(),category:v('category'),date:v('date'),cents:B.cents(v('amount'))
+      };
+      if(editing.data.key)item.key=editing.data.key;
+      const same=budget.actual.findIndex(entry=>entry.id===item.id);
+      if(same<0)budget.actual.push(item);
+      else budget.actual[same]=item;
+    }
+    else if(editing.mode==='balance'||editing.mode==='import-balance'){if(editing.mode==='import-balance'&&!f.verified.checked)throw Error('Confirm the verified closing balance before saving.');if(!B.validDate(v('date'))||v('date')>B.today())throw Error('Choose today or an earlier closing date.');next.balance={cents:B.cents(v('amount')),date:v('date')};}
+    else if(editing.mode==='event'){
+      const o={date:v('date'),cents:B.cents(v('amount')),skip:f.skip.checked,confirmed:f.confirmed.checked};
+      if(f.checking?.value&&o.date===state.balance.date){o.checking=f.checking.value;o.snapshotDate=state.balance.date;}
+      next.overrides[editing.data.key]=o;
+    }
+    else {const r={id:editing.data?.id||'r'+Date.now().toString(36)+Math.random().toString(36).slice(2,8),name:v('name').trim(),kind:editing.mode==='financing'?'bill':v('kind'),cents:B.cents(v('amount')),start:v('start'),frequency:editing.mode==='financing'?'monthly':v('frequency'),estimated:f.estimated?.checked||false};if(editing.mode==='financing'){r.installments=Number(v('installments'));r.end=B.installmentEnd(r.start,r.installments);}else{r.days=[Number(v('day1')),Number(v('day2'))];if(v('end'))r.end=v('end');}if(r.kind!=='income'&&f.category){r.category=v('category');r.cardPayoff=f.cardPayoff.checked;}const i=next.rules.findIndex(x=>x.id===r.id);if(i<0)next.rules.push(r);else next.rules[i]=r;}
+    await commit(next);returnToEntries();
+  }catch(err){$('form-error').textContent=err.message;}});
+  $('delete-entry').onclick=async()=>{const spending=editing.mode==='budget-spending';if(!confirm(spending?'Delete this spending record?':'Delete this entry and its individual payment changes?'))return;try{const next=B.clone(state),id=editing.data.id;if(spending){next.budget.actual=next.budget.actual.filter(r=>r.id!==id);}else{next.rules=next.rules.filter(r=>r.id!==id);for(const k of Object.keys(next.overrides))if(k.startsWith(id+'@'))delete next.overrides[k];}next.sample=false;await commit(next);returnToEntries();}catch(e){$('form-error').textContent=e.message;}};
+  document.addEventListener('click',e=>{const b=e.target.closest('button');if(!b)return;
+    if(b.dataset.budgetGoal){
+      const row=budgetView.rows.find(r=>r.id===b.dataset.budgetGoal);
+      if(row)openEditor('budget-goal',{category:row.id,goal:row.goal});
+    }
+    if(b.dataset.budgetPay){
+      const entry=budgetView.planned.find(e=>e.key===b.dataset.budgetPay);
+      if(entry)openEditor('budget-spending',{...entry,id:undefined,postedDate:entry.date>B.today()?B.today():entry.date});
+    }
+    if(b.dataset.budgetEdit){
+      const entry=budgetView.actual.find(e=>e.id===b.dataset.budgetEdit);
+      if(entry)openEditor('budget-spending',{...entry,postedDate:entry.date});
+    }
+    if(b.dataset.days){days=Number(b.dataset.days);if(month> B.add(state.balance.date,days).slice(0,7)+'-01')month=B.add(state.balance.date,days).slice(0,7)+'-01';render();}
+    if(b.dataset.rule){const r=state.rules.find(r=>r.id===b.dataset.rule);managerScroll=$('manager').scrollTop;$('manager').close();openEditor(r?.installments?'financing':'rule',r,true);}
+    if(b.dataset.reset){const next=B.clone(state);delete next.overrides[b.dataset.reset];commit(next).catch(e=>alert(e.message));}
+    if(b.dataset.dismiss){const next=B.clone(state);next.integrations.inbox=next.integrations.inbox.filter(i=>i.id!==b.dataset.dismiss);commit(next).catch(e=>alert(e.message));}
+    if(b.dataset.event){const key=b.dataset.event,day=state.overrides[key]?.date||B.occurrenceRef(key).date;const ev=B.events(state,day,day).find(x=>x.key===key);if(ev)openEditor('event',ev);}
+  });
+  tabs.forEach(name=>$('tab-'+name).onclick=()=>{view=name;if(name==='ledger'&&!ledgerVisited){ledgerVisited=true;const first=result.events.find(e=>e.date>=B.today());if(first)month=first.date.slice(0,7)+'-01';renderLedger();}for(const n of tabs){$(n).hidden=n!==name;$('tab-'+n).setAttribute('aria-selected',n===name);}const budgeting=name==='budgets';
+    for(const selector of ['.header-grid','#outlook-warning','.ranges','#purchase-preview'])document.querySelector(selector).hidden=budgeting;
+    if(budgeting)renderBudgets();
+    if(name==='horizon')drawChart();
+  });
+  $('budget-month').value=budgetMonth.slice(0,7);
+  $('budget-month').addEventListener('change',e=>{
+    const selected=e.target.value+'-01';
+    if(!B.validDate(selected)){e.target.value=budgetMonth.slice(0,7);return;}
+    budgetMonth=selected;renderBudgets();
+  });
+  $('log-spending').onclick=()=>openEditor('budget-spending',{});
+  $('add-financing').onclick=()=>{managerScroll=$('manager').scrollTop;$('manager').close();openEditor('financing',undefined,true);};
+  $('update-balance').onclick=()=>openEditor('balance');
+  for(const kind of ['income','bill','spending'])$('add-'+kind).onclick=()=>openEditor('rule',{kind,name:'',cents:0,start:B.add(B.today(),1),frequency:kind==='spending'?'weekly':'monthly',days:[1,15],estimated:kind==='spending'});
+  $('close-editor').onclick=returnToEntries;$('editor').addEventListener('cancel',e=>{e.preventDefault();returnToEntries();});$('manage').onclick=()=>{renderEntries();$('manager').showModal();};$('close-manager').onclick=()=>$('manager').close();
+  for(const [id,step] of [['previous-month',-1],['next-month',1]])$(id).onclick=()=>{const d=B.date(month);month=B.monthDate(d.getUTCFullYear(),d.getUTCMonth()+step,1);renderLedger();};
+  $('preview-date').value=scenario.date;$('preview-date').min=B.add(state.balance.date,1);
+  function previewChange(){try{if(!$('preview-date').validity.valid||!B.validDate($('preview-date').value))throw Error('Choose a valid purchase date.');const amount=B.cents($('preview-amount').value);if(amount<0)throw Error('Purchase amount must be positive.');scenario={enabled:$('preview-enabled').checked,cents:amount,date:$('preview-date').value};render();}catch(e){scenario.enabled=false;$('preview-enabled').checked=false;render();$('preview-result').innerHTML='<p class="error">'+escape(e.message)+'</p>';}}
+  ['preview-enabled','preview-amount','preview-date'].forEach(id=>$(id).addEventListener('change',previewChange));
+  $('settings').onclick=()=>{$('buffer').value=state.buffer/100;$('preferences').showModal();};$('close-settings').onclick=()=>$('preferences').close();
+  $('save-buffer').onclick=async()=>{try{const next=B.clone(state);next.buffer=B.cents($('buffer').value);await commit(next);$('preferences').close();}catch(e){status(e.message);}};
+  $('export').onclick=async()=>{try{await request('export',{});status('Backup export opened. Choose Save to Files.');}catch(e){status(e.message);}};
+  $('restore').onclick=async()=>{if(busy)return;if(uncertain){status('Close Settings and tap Reload saved data first.');return;}setBusy(true);try{const reply=await request('restore',{revision:state.revision});if(reply.state){state=B.validate(reply.state);selected=state.balance.date;$('preferences').close();render();status('Backup restored on this iPhone.');}}catch(e){status('Restore: '+e.message);}finally{setBusy(false);renderLedger();}};
+  $('captures').onclick=()=>{$('preferences').close();renderInbox();$('inbox').showModal();};$('close-inbox').onclick=()=>$('inbox').close();
+  window.addEventListener('resize',drawChart);new ResizeObserver(()=>{if(view==='horizon')drawChart();}).observe($('chart'));
+  let day=B.today();document.addEventListener('visibilitychange',()=>{if(!document.hidden&&B.today()!==day){day=B.today();render();}});
+  window.BudgetApp={getState:()=>B.clone(state),getResult:()=>result,inspect,request};
+  status(window.IS_NATIVE?'Loaded from this iPhone':'Browser demonstration · saving is disabled');render();if(Array.isArray(window.BALANCE_IMPORT))openEditor('import-balance',window.BALANCE_IMPORT);
+})();
+
+</script></main></body></html>

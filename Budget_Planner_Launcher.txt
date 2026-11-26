@@ -3,6 +3,7 @@
 // Budget Planner GitHub launcher 1.0.0 — install in the existing Budget Planner script.
 // UPDATE_STATUS returns the installed version. UPDATE_SETTINGS requires Run in App ON.
 const ROOT='https://raw.githubusercontent.com/LearningCodeHard/Wake-Window-Tracker/budget-planner';
+const TESTING=false;
 const KEY='budget-planner:updates:v1';
 function sha256(bytes) {
   const k=[0x428a2f98,0x71374491,0xb5c0fbcf,0xe9b5dba5,0x3956c25b,0x59f111f1,0x923f82a4,0xab1c5ed5,0xd807aa98,0x12835b01,0x243185be,0x550c7dc3,0x72be5d74,0x80deb1fe,0x9bdc06a7,0xc19bf174,0xe49b69c1,0xefbe4786,0x0fc19dc6,0x240ca1cc,0x2de92c6f,0x4a7484aa,0x5cb0a9dc,0x76f988da,0x983e5152,0xa831c66d,0xb00327c8,0xbf597fc7,0xc6e00bf3,0xd5a79147,0x06ca6351,0x14292967,0x27b70a85,0x2e1b2138,0x4d2c6dfc,0x53380d13,0x650a7354,0x766a0abb,0x81c2c92e,0x92722c85,0xa2bfe8a1,0xa81a664b,0xc24b8b70,0xc76c51a3,0xd192e819,0xd6990624,0xf40e3585,0x106aa070,0x19a4c116,0x1e376c08,0x2748774c,0x34b0bcb5,0x391c0cb3,0x4ed8aa4a,0x5b9cca4f,0x682e6ff3,0x748f82ee,0x78a5636f,0x84c87814,0x8cc70208,0x90befffa,0xa4506ceb,0xbef9a3f7,0xc67178f2];
@@ -21,8 +22,9 @@ function sha256(bytes) {
   return h.map(n=>(n>>>0).toString(16).padStart(8,'0')).join('');
 }
 
-function createBudgetUpdater({fm,keychain,request,bytes,loadModule,uuid}){
-  const cache=fm.joinPath(fm.libraryDirectory(),'BudgetPlannerReleasesV1');
+function createBudgetUpdater({fm,keychain,request,bytes,loadModule,uuid,testing=false}){
+  const cache=fm.joinPath(fm.libraryDirectory(),testing?'BudgetPlannerTestReleasesV1':'BudgetPlannerReleasesV1');
+  const settingsKey=testing?KEY+':test':KEY;
   if(!fm.fileExists(cache))fm.createDirectory(cache,true);
   let s={active:null,previous:null,sequence:0,head:null,paused:false,blocked:null}, status='';
   const validHash=h=>typeof h==='string'&&/^[a-f0-9]{64}$/.test(h);
@@ -33,13 +35,13 @@ function createBudgetUpdater({fm,keychain,request,bytes,loadModule,uuid}){
       m.path!=='releases/'+m.sha256+'.js')throw Error('Invalid Budget Planner manifest.');
     return m;
   }
-  if(keychain.contains(KEY)){
-    const saved=JSON.parse(keychain.get(KEY));
+  if(keychain.contains(settingsKey)){
+    const saved=JSON.parse(keychain.get(settingsKey));
     if(!saved||!Number.isSafeInteger(saved.sequence)||saved.sequence<0||typeof saved.paused!=='boolean'||
        (saved.head!==null&&!validHash(saved.head))||(saved.blocked!==null&&!validHash(saved.blocked)))throw Error('Invalid saved update settings.');
     if(saved.active)manifest(saved.active);if(saved.previous)manifest(saved.previous);s=saved;
   }
-  const save=next=>{keychain.set(KEY,JSON.stringify(next));s=next;};
+  const save=next=>{keychain.set(settingsKey,JSON.stringify(next));s=next;};
   const file=m=>fm.joinPath(cache,m.sha256+'.js');
   const matches=(m,text)=>{const b=bytes(text);return b.length===m.bytes&&sha256(b)===m.sha256;};
   const valid=m=>{try{return !!m&&fm.fileExists(file(m))&&matches(m,fm.readString(file(m)));}catch(_){return false;}};
@@ -70,6 +72,7 @@ function createBudgetUpdater({fm,keychain,request,bytes,loadModule,uuid}){
         if(fm.fileExists(file(m)))fm.remove(file(m));
         fm.move(tmp,file(m));tmp=null;
       }
+      if(typeof loadModule(file(m))?.run!=='function')throw Error('Invalid release entry point.');
       save({...s,active:m,previous:valid(s.active)?s.active:s.previous,head:m.sha256,sequence:m.sequence,blocked:null});
       status='Updated to '+m.version;
     }catch(e){status='Using cache: '+e.message;if(!valid(s.active)&&!valid(s.previous))throw e;}
@@ -87,13 +90,13 @@ function createBudgetUpdater({fm,keychain,request,bytes,loadModule,uuid}){
     }
     const app=loadModule(file(m));if(typeof app?.run!=='function')throw Error('Invalid release entry point. Use UPDATE_SETTINGS to revert.');
     // Never replay a command after app execution starts; it may have written data.
-    await app.run(input);
+    await app.run(input,{testing});
   }
   return {run,info,canRevert,revert,toggle,paused:()=>s.paused};
 }
 try{
   const updater=createBudgetUpdater({fm:FileManager.local(),keychain:Keychain,request:url=>new Request(url),
-    bytes:s=>Data.fromString(s).getBytes(),loadModule:path=>importModule(path),uuid:()=>UUID.string()});
+    bytes:s=>Data.fromString(s).getBytes(),loadModule:path=>importModule(path),uuid:()=>UUID.string(),testing:TESTING});
   const input=args.shortcutParameter??args.queryParameters?.command??args.notification?.userInfo?.command;
   const action=typeof input==='string'?input.trim().toUpperCase():'';
   if(action==='UPDATE_STATUS')Script.setShortcutOutput(updater.info());

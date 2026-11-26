@@ -2,6 +2,12 @@
 
 This branch distributes Budget Planner code only. Wake Window channels are maintained separately. The launcher's GitHub connection is read-only and never accesses or uploads saved budgets.
 
+## Upgrade to v1.4.0
+
+Open your existing production **Budget Planner** script once while online. Its launcher downloads v1.4.0 and keeps using the existing local budget. If it still shows an older version, confirm the shortcut runs the production launcher and automatic updates are enabled in UPDATE_SETTINGS.
+
+This release adds bill presets, monthly category budgets and recorded spending. It also keeps Manage entries open after a save and adds Posted or Pending review for same-day checking activity. The [test workflow](https://github.com/LearningCodeHard/Wake-Window-Tracker/tree/budget-planner-test) uses its own Scriptable plan.
+
 ## Install once
 
 Replace the contents of the existing **Budget Planner** script in Scriptable with [Budget_Planner_Launcher.txt](Budget_Planner_Launcher.txt). Keep its name so existing Shortcuts continue to use it. Run it once while online to cache the first verified release. The dashboard continues to use the existing local BudgetPlannerV1 plan.
@@ -23,4 +29,4 @@ From the screenshot share sheet, run **Import Bank Balance**. Review the suggest
 
 ## Release process
 
-Build the Scriptable app as a module exporting async run(input). Keep real or example personal budget data out of the release. Verify shortcut inputs, offline operation, update integrity, and the existing local data schema. Write the immutable releases/<sha256>.js file and update manifest.json together, incrementing sequence. Publish only to this branch. Never reuse a sequence for different content. Changes to launcher capabilities require a new launcher install.
+Build with node build.cjs VERSION SEQUENCE. Run node --test tests/*.test.cjs to verify the release. Keep real or example personal budget data out of the release. Verify shortcut inputs, offline operation, update integrity, and the existing local data schema. Write the immutable releases/<sha256>.js file and update manifest.json together, incrementing sequence. Publish only to this branch. Never reuse a sequence for different content. Changes to launcher capabilities require a new launcher install.
