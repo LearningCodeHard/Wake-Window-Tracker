@@ -1,3 +1,9 @@
+# V2.1.7 production acceptance
+
+Cameron confirmed TEST 2.1.7 and approved promotion. Production sequence 7 and TEST sequence 13 select the same exact-nap-override build. All 229 automated checks passed in TEST.
+
+SHA-256 `9945f178040c95c327cba17939ac92abe9bf1e263f28a85777ce5d0b647b1f22`
+
 # V2.1.6 production acceptance
 
 Cameron approved promotion of the audited TEST 2.1.6 build. All 228
