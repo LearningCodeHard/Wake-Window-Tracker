@@ -1,3 +1,7 @@
+# 2.1.8 production hotfix
+
+Cameron authorized promotion of TEST sequence 14 to production sequence 8 for on-device testing. The save recovery build passed 231 automated checks. The intermittent launch alert remains under investigation.
+
 # V2.1.7 production acceptance
 
 Cameron confirmed TEST 2.1.7 and approved promotion. Production sequence 7 and TEST sequence 13 select the same exact-nap-override build. All 229 automated checks passed in TEST.
